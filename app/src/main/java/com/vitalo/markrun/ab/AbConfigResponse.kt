@@ -2,6 +2,7 @@ package com.vitalo.markrun.ab
 
 import androidx.annotation.Keep
 import com.google.gson.annotations.SerializedName
+import com.vitalo.markrun.common.ab.BaseAbConfig
 
 /**
  * AB 接口的顶层响应结构。

@@ -159,19 +159,26 @@ private fun TabItem(
         verticalArrangement = Arrangement.Top
     ) {
         if (selected) {
-            // Indicator line
-            Box(
+            // Indicator inverted triangle
+            androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .width(35.dp)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(1.5.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(GradientGreenEnd, GradientGreenStart)
-                        )
+                    .height(9.dp)
+            ) {
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(0f, 0f)
+                    lineTo(size.width, 0f)
+                    lineTo(size.width / 2f, size.height)
+                    close()
+                }
+                drawPath(
+                    path = path,
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(GradientGreenEnd, GradientGreenStart)
                     )
-            )
-            Spacer(modifier = Modifier.height(6.dp))
+                )
+            }
+            Spacer(modifier = Modifier.height(1.dp))
         } else {
             Spacer(modifier = Modifier.height(10.dp))
         }

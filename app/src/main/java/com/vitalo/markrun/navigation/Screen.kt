@@ -25,4 +25,5 @@ sealed class Screen(val route: String) {
     data object WebGame : Screen("web_game/{kind}")
     data object SpinWheel : Screen("spin_wheel")
     data object WithdrawRecord : Screen("withdraw_record")
+    data object AppDebug : Screen("app_debug")
 }

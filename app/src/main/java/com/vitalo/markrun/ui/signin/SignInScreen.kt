@@ -1,5 +1,10 @@
 package com.vitalo.markrun.ui.signin
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,8 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
@@ -26,11 +33,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vitalo.markrun.R
 import com.vitalo.markrun.data.remote.model.SignInModel
 import com.vitalo.markrun.data.remote.model.SignInRewardType
+import com.vitalo.markrun.ui.common.CommonLottieView
+import com.vitalo.markrun.ui.utils.StrokeTextView
 import kotlinx.coroutines.launch
 
 // -------------------- 样式常量（参照 iOS SignInStyle.swift） --------------------
@@ -100,24 +109,18 @@ fun SignInOverlay(
         }
     }
 
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true
-        )
+    androidx.activity.compose.BackHandler(onBack = onClose)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.8f))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { onClose() },
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.8f))
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { onClose() },
-            contentAlignment = Alignment.Center
-        ) {
             Box(
                 modifier = Modifier
                     .size(372.dp, 544.dp)
@@ -174,21 +177,23 @@ fun SignInOverlay(
                 )
             }
         }
-    }
 }
 
 // -------------------- 标题 --------------------
 @Composable
 private fun SignInTitleView() {
-    Text(
+    StrokeTextView(
         text = "Daily Sign-in",
         fontSize = 26.sp,
         fontWeight = FontWeight.Bold,
-        color = Color.White,
-        modifier = Modifier
-            .graphicsLayer {
-                shadowElevation = 4f
-            }
+        strokeWidth = 14f,
+        strokeColor = Color(0xFFE2611A), // 偏深橙/棕色的描边颜色
+        textColor = Color.White,
+        shadow = Shadow(
+            color = Color.Black.copy(alpha = 0.5f),
+            offset = Offset(0f, 6f),
+            blurRadius = 8f
+        )
     )
 }
 
@@ -352,9 +357,14 @@ private fun SignInCalendarGridView(
             .padding(horizontal = 13.dp),
         verticalArrangement = Arrangement.spacedBy(spacing)
     ) {
+        val row1HasToday = weekData.subList(0, 4).any { it.isToday && !it.isSignedIn }
+        val row2HasToday = weekData.subList(4, 7).any { it.isToday && !it.isSignedIn }
+
         // 第一行 4 个等宽
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .zIndex(if (row1HasToday) 1f else 0f),
             horizontalArrangement = Arrangement.spacedBy(spacing)
         ) {
             for (i in 0..3) {
@@ -370,7 +380,9 @@ private fun SignInCalendarGridView(
         }
         // 第二行前两个 + 大Cell
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .zIndex(if (row2HasToday) 1f else 0f),
             horizontalArrangement = Arrangement.spacedBy(spacing)
         ) {
             for (i in 4..5) {
@@ -428,9 +440,9 @@ private fun SignInCalendarCell(
 
     Box(
         modifier = modifier
+            .zIndex(if (isToday) 1f else 0f) // 确保今天的Cell在最上层
             .clickable(enabled = (isToday || isExpired) && !isSignedIn) {
                 viewModel.signIn(model.day)
-                viewModel.updateCurrentStatus()
             },
         contentAlignment = Alignment.Center
     ) {
@@ -438,13 +450,15 @@ private fun SignInCalendarCell(
         if (isToday) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(1.dp)
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.958f) // 91/95 ≈ 0.958
+                    .padding(horizontal = 1.dp)
                     .border(
                         width = 2.dp,
                         brush = TodayBorderBrush,
                         shape = RoundedCornerShape(11.dp)
                     )
+                    .align(Alignment.Center)
             )
         }
 
@@ -456,7 +470,7 @@ private fun SignInCalendarCell(
                 .padding(horizontal = 4.dp)
                 .clip(shape)
                 .background(bgBrush)
-                .align(Alignment.TopCenter)
+                .align(Alignment.Center)
         ) {
             // 顶部 Day X 或 Re-sign
             if (!isSignedIn) {
@@ -522,6 +536,29 @@ private fun SignInCalendarCell(
                 }
             }
         }
+
+        // 提示领取的手指动画（仅今天可领取时显示）
+        if (isToday) {
+                val infiniteTransition = rememberInfiniteTransition(label = "fingerBounce")
+                val offsetY by infiniteTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = 6f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(500),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "fingerBounceOffset"
+                )
+                Image(
+                    painter = painterResource(id = R.drawable.ic_finger_guide),
+                    contentDescription = "Finger Guide",
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .offset(y = (15f + offsetY).dp)
+                        .size(40.dp)
+                        .zIndex(10f) // 确保在最上层
+                )
+            }
 
         // 已签到：白色遮罩 + 对勾
         if (isSignedIn) {
@@ -599,7 +636,8 @@ private fun SignInChestGroupView(viewModel: SignInViewModel) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 60.dp, vertical = 25.dp),
+                .padding(horizontal = 60.dp)
+                .offset(y = (-10).dp), // 提高进度条
             horizontalArrangement = Arrangement.spacedBy(29.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -620,13 +658,13 @@ private fun SignInChestGroupView(viewModel: SignInViewModel) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             SignInChestItem(2, totalSignDays, viewModel.isChestClaimed(2)) {
-                if (viewModel.claimChest(2)) viewModel.updateCurrentStatus()
+                viewModel.claimChest(2)
             }
             SignInChestItem(7, totalSignDays, viewModel.isChestClaimed(7)) {
-                if (viewModel.claimChest(7)) viewModel.updateCurrentStatus()
+                viewModel.claimChest(7)
             }
             SignInChestItem(15, totalSignDays, viewModel.isChestClaimed(15)) {
-                if (viewModel.claimChest(15)) viewModel.updateCurrentStatus()
+                viewModel.claimChest(15)
             }
         }
     }
@@ -665,15 +703,50 @@ private fun SignInChestItem(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = "$requiredDays day",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(red = 1f, green = 0.4f, blue = 0.27f).copy(
-                alpha = if (isClaimable || isClaimed) 1f else 0.4f
+        
+        Spacer(modifier = Modifier.height(0.dp)) // 缩小间距
+        
+        if (isClaimable) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .height(23.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            0.0f to Color(0xFFFC4D82),
+                            0.54f to Color(0xFFFF8F45),
+                            1.0f to Color(0xFFF7D129)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .padding(start = 2.dp, end = 6.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_sign_in_chest_ad),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(width = 24.dp, height = 19.dp)
+                        .offset(x = 2.dp)
+                )
+                Text(
+                    text = "Claim",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White
+                )
+            }
+        } else {
+            Text(
+                text = "$requiredDays day",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(red = 1f, green = 0.4f, blue = 0.27f).copy(
+                    alpha = if (isClaimed) 1f else 0.4f
+                ),
+                modifier = Modifier.height(23.dp).wrapContentHeight(Alignment.CenterVertically)
             )
-        )
+        }
     }
 }
 

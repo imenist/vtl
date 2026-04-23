@@ -112,18 +112,30 @@ class SignInViewModel @Inject constructor(
         return _signInData.value.subList(start, end)
     }
 
-    fun signIn(day: Int? = null): Boolean {
+    fun signIn(day: Int? = null) {
         val targetDay = day ?: _currentDay.value
-        if (targetDay < 1 || targetDay > cycleDays) return false
+        if (targetDay < 1 || targetDay > cycleDays) return
 
         val isToday = targetDay == _currentDay.value
         val isExpired = targetDay < _currentDay.value
-        if (!isToday && !isExpired) return false
+        if (!isToday && !isExpired) return
 
         val data = _signInData.value.toMutableList()
         val index = data.indexOfFirst { it.day == targetDay }
-        if (index < 0 || data[index].isSignedIn) return false
+        if (index < 0 || data[index].isSignedIn) return
 
+        // TODO: 接入广告 SDK 后在此处展示广告
+        // AdManager.showAd(onReward = { success ->
+        //     if (success) {
+        //         performSignIn(targetDay, index, data)
+        //     }
+        // })
+        
+        // 目前暂时代替为直接签到成功
+        performSignIn(index, data)
+    }
+
+    private fun performSignIn(index: Int, data: MutableList<SignInModel>) {
         data[index] = data[index].copy(
             isSignedIn = true,
             signInDate = System.currentTimeMillis()
@@ -134,7 +146,8 @@ class SignInViewModel @Inject constructor(
         if (data[index].rewardType == SignInRewardType.COIN) {
             addLocalCoin(data[index].rewardAmount)
         }
-        return true
+        
+        updateCurrentStatus()
     }
 
     fun getTotalSignDays(): Int = _signInData.value.count { it.isSignedIn }
@@ -143,14 +156,25 @@ class SignInViewModel @Inject constructor(
         return appPreferences.getBoolean("SignInChestClaimed_$requiredDays")
     }
 
-    fun claimChest(requiredDays: Int): Boolean {
+    fun claimChest(requiredDays: Int) {
         val accumulateDays = getTotalSignDays()
         if (!isChestClaimed(requiredDays) && accumulateDays >= requiredDays) {
-            appPreferences.setBoolean("SignInChestClaimed_$requiredDays", true)
-            addLocalCoin(100) // Default chest reward
-            return true
+            // TODO: 接入广告 SDK 后在此处展示广告
+            // AdManager.showAd(onReward = { success ->
+            //     if (success) {
+            //         performClaimChest(requiredDays)
+            //     }
+            // })
+            
+            // 目前暂时代替为直接领取成功
+            performClaimChest(requiredDays)
         }
-        return false
+    }
+    
+    private fun performClaimChest(requiredDays: Int) {
+        appPreferences.setBoolean("SignInChestClaimed_$requiredDays", true)
+        addLocalCoin(100) // Default chest reward
+        updateCurrentStatus()
     }
 
     private fun loadSignedInDays(): List<Int> {

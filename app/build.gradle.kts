@@ -147,4 +147,25 @@ dependencies {
     implementation("commons-codec:commons-codec:1.15")
     implementation("com.appsflyer:af-android-sdk:6.13.0")
     implementation("com.appsflyer:adrevenue:6.9.1")
+
+    // Google AdMob 核心
+    implementation("com.google.android.gms:play-services-ads:23.0.0")
+    implementation("com.google.android.gms:play-services-ads-identifier:18.0.1")
+
+    // AdMob 的中介适配器 (Mediation Adapters)
+    implementation("com.google.ads.mediation:facebook:6.16.0.0")
+    implementation("com.google.ads.mediation:applovin:12.4.3.0")
+    implementation("com.google.ads.mediation:mintegral:16.9.71.0")
+    
+    // AppLovin MAX
+    implementation("com.applovin:applovin-sdk:12.6.1")
+    // AppLovin MAX AdMob Adapter
+    implementation("com.applovin.mediation:google-adapter:23.0.0.0")
+    // AppLovin MAX other adapters based on mediation networks
+    implementation("com.applovin.mediation:fyber-adapter:8.4.0.0") // DT Exchange
+    implementation("com.applovin.mediation:ironsource-adapter:8.11.0.0.0") // IronSource
+    implementation("com.applovin.mediation:vungle-adapter:7.5.0.2") // Liftoff Monetize (Vungle)
+    implementation("com.applovin.mediation:mintegral-adapter:16.9.71.0") // Mintegral
+    implementation("com.applovin.mediation:bytedance-adapter:7.2.0.6.0") // Pangle
+    implementation("com.applovin.mediation:unityads-adapter:4.15.0.1") // Unity
 }

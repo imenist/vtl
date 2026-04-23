@@ -2,8 +2,8 @@ package com.vitalo.markrun.data.repository
 
 import com.vitalo.markrun.ab.AbConfigContract
 import com.vitalo.markrun.ab.AbManager
-import com.vitalo.markrun.ab.BaseAbConfig
 import com.vitalo.markrun.ab.AbConfigResponse
+import com.vitalo.markrun.common.ab.BaseAbConfig
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton

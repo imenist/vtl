@@ -1,8 +1,7 @@
 package com.vitalo.markrun.ui.stepcounter
 
 import android.widget.Toast
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vitalo.markrun.R
 import com.vitalo.markrun.data.remote.model.StepMilestoneStatus
+import com.vitalo.markrun.ui.utils.StrokeTextView
+import com.vitalo.markrun.ui.utils.GradientStrokeTextView
 
 @Composable
 fun StepCounterView(
@@ -188,6 +190,10 @@ fun StepCounterView(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        val firstClaimableIndex = milestones.indexOfFirst {
+            viewModel.getEffectiveStatus(milestones.indexOf(it)) == StepMilestoneStatus.CLAIMABLE
+        }
+
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
@@ -206,6 +212,8 @@ fun StepCounterView(
                     status = effectiveStatus,
                     progress = if (milestone.requiredSteps > 0)
                         minOf(cumulativeSteps.toFloat() / milestone.requiredSteps, 1f) else 1f,
+                    isFirstClaimable = index == firstClaimableIndex,
+                    isFree = milestone.isFree,
                     onClick = {
                         when (effectiveStatus) {
                             StepMilestoneStatus.CLAIMABLE -> viewModel.claimMilestone(index)
@@ -230,75 +238,210 @@ fun MilestoneItem(
     requiredSteps: Int,
     status: StepMilestoneStatus,
     progress: Float,
+    isFirstClaimable: Boolean = false,
+    isFree: Boolean = true,
     onClick: () -> Unit
 ) {
-    val bgBrush = when (status) {
-        StepMilestoneStatus.CLAIMED -> Brush.linearGradient(
-            listOf(Color(0x33D6D6D6), Color(0x33DBD19E))
-        )
-        StepMilestoneStatus.CLAIMABLE -> Brush.linearGradient(
-            listOf(Color(0xFFFFFFFF), Color(0xFFFFF2D1))
-        )
-        StepMilestoneStatus.LOCKED -> Brush.linearGradient(
-            listOf(Color(0xFFC9E8FF), Color(0xFFE3FC8C))
-        )
+    val infiniteTransition = rememberInfiniteTransition(label = "bounce")
+    val bounceOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, easing = LinearOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bounceOffset"
+    )
+    val actualBounceOffset = if (isFirstClaimable) bounceOffset.dp else 0.dp
+
+    val bgModifier = when (status) {
+        StepMilestoneStatus.CLAIMED -> Modifier
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(Color(0xFFD6D6D6), Color(0xFFDBD19E))
+                ),
+                alpha = 0.2f
+            )
+        StepMilestoneStatus.CLAIMABLE -> Modifier
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White,
+                        Color(0xFFFFF2D1),
+                        Color(0xFFFFEFDE),
+                        Color(0xFFFFF2D1),
+                        Color(0x17F7FF8C),
+                        Color.White
+                    )
+                )
+            )
+        StepMilestoneStatus.LOCKED -> Modifier
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFFC9E8FF), Color(0xFFE3FC8C))
+                )
+            )
+    }
+
+    val shadowModifier = if (status != StepMilestoneStatus.CLAIMED) {
+        Modifier.shadow(elevation = 4.dp, shape = RoundedCornerShape(12.5.dp), spotColor = Color.Black.copy(alpha = 0.1f))
+    } else {
+        Modifier
     }
 
     Column(
         modifier = Modifier
             .width(62.dp)
             .height(92.dp)
+            .then(shadowModifier)
             .clip(RoundedCornerShape(12.5.dp))
-            .background(bgBrush)
+            .then(bgModifier)
             .clickable { onClick() }
-            .padding(vertical = 4.dp),
+            .padding(top = 3.dp, bottom = 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = "🪙", fontSize = 24.sp)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_step_milestone_coin),
+                contentDescription = null,
+                modifier = Modifier.height(43.dp),
+                contentScale = ContentScale.Fit
+            )
 
-        Text(
-            text = "+$rewardCoins",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Black,
-            fontStyle = FontStyle.Italic,
-            color = when (status) {
-                StepMilestoneStatus.CLAIMED -> Color(0xFFB5B08D)
-                else -> Color(0xFFFF9814)
+            if (status == StepMilestoneStatus.CLAIMED) {
+                StrokeTextView(
+                    text = "+$rewardCoins",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = FontStyle.Italic,
+                    strokeWidth = 3f,
+                    strokeColor = Color.White,
+                    textColor = Color(0xFFB5B08D),
+                    modifier = Modifier.offset(y = actualBounceOffset)
+                )
+            } else {
+                GradientStrokeTextView(
+                    text = "+$rewardCoins",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = FontStyle.Italic,
+                    strokeWidth = 3f,
+                    strokeColor = Color.White,
+                    gradientColors = listOf(Color(0xFFFFDA24), Color(0xFFFE9814), Color(0xFFFC1702)),
+                    modifier = Modifier.offset(y = actualBounceOffset)
+                )
             }
-        )
+        }
 
-        Box(
-            modifier = Modifier
-                .width(51.dp)
-                .height(20.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(
-                    when (status) {
-                        StepMilestoneStatus.CLAIMED -> Brush.horizontalGradient(
-                            listOf(Color(0xFFD6D6D6), Color(0xFFDBD19E))
-                        )
-                        StepMilestoneStatus.CLAIMABLE -> Brush.horizontalGradient(
-                            listOf(Color(0xFFFD4D82), Color(0xFFFF8F45))
-                        )
-                        StepMilestoneStatus.LOCKED -> Brush.horizontalGradient(
-                            listOf(Color(0xFFDBD19E), Color(0xFFD6D6D6))
+        Spacer(modifier = Modifier.weight(1f))
+
+        when (status) {
+            StepMilestoneStatus.CLAIMED -> {
+                Box(
+                    modifier = Modifier
+                        .width(51.dp)
+                        .height(20.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(Color(0xFFD6D6D6), Color(0xFFDBD19E))
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_step_milestone_tick),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .width(13.dp)
+                            .height(10.dp)
+                    )
+                }
+            }
+            StepMilestoneStatus.CLAIMABLE -> {
+                Box(
+                    modifier = Modifier
+                        .width(51.dp)
+                        .height(20.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(Color(0xFFFF4D82), Color(0xFFFF8F45), Color(0xFFF7D129))
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        if (!isFree) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_exchange_ad_play),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .width(9.dp)
+                                    .height(7.4.dp)
+                            )
+                        }
+                        Text(
+                            text = "Claim",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Black,
+                            fontStyle = FontStyle.Italic,
+                            color = Color.White
                         )
                     }
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            when (status) {
-                StepMilestoneStatus.CLAIMED -> Text("✓", fontSize = 10.sp, color = Color.White)
-                StepMilestoneStatus.CLAIMABLE -> Text(
-                    "Claim", fontSize = 9.sp,
-                    fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic,
-                    color = Color.White
-                )
-                StepMilestoneStatus.LOCKED -> Text(
-                    "$requiredSteps", fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold, color = Color.White
-                )
+                }
+            }
+            StepMilestoneStatus.LOCKED -> {
+                Box(
+                    modifier = Modifier
+                        .width(51.dp)
+                        .height(20.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(Color(0xFFDBD19E), Color(0xFFD6D6D6))
+                            )
+                        )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(fraction = progress)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(Color(0xFF2EE3B0), Color(0xFF599EFF))
+                                )
+                            )
+                    )
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_step_milestone_shoe),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .width(16.dp)
+                                .height(23.dp),
+                            contentScale = ContentScale.FillBounds
+                        )
+                        Text(
+                            text = "$requiredSteps",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1
+                        )
+                    }
+                }
             }
         }
     }

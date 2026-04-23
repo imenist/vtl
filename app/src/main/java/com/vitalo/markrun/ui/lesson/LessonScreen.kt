@@ -329,7 +329,7 @@ private fun AdSlotMachineButton(
             color = Color.White,
             modifier = Modifier
                 .offset(y = (-5).dp)
-                .clip(RoundedCornerShape(9.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFFFB97D7))
                 .padding(horizontal = 6.dp, vertical = 2.dp)
         )

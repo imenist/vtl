@@ -61,7 +61,7 @@ fun AdEarnCoinFloatingButton(
         label = "bounce"
     )
 
-    Column(
+    Box(
         modifier = modifier
             .offset(y = bounceOffset.dp)
             .clickable(
@@ -69,7 +69,6 @@ fun AdEarnCoinFloatingButton(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             ) { onTap() },
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // iOS 对应 ic_lesson_ad_entrance_coin
         Image(
@@ -92,8 +91,8 @@ fun AdEarnCoinFloatingButton(
 
         Box(
             modifier = Modifier
+                .align(Alignment.BottomCenter)
                 // 使用 zIndex 保证其显示在图片上面
-                .shadow(2.dp, shape, clip = false)
                 .size(width = 50.dp, height = 21.dp)
                 .clip(shape)
                 .background(if (isCooling) disabled else colorful),

@@ -6,6 +6,7 @@ import com.vitalo.markrun.ab.AbManager
 import com.vitalo.markrun.config.AppConfig
 import com.vitalo.markrun.config.DevConfig
 import com.vitalo.markrun.config.ProductConfig
+import com.vitalo.markrun.util.MmkvUtils
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -29,8 +30,14 @@ class VitaloApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        installSdk()
+        installSdk()
         installConfig()
         initAbManager()
+    }
+
+    private fun installSdk(){
+        MmkvUtils.initialize(this)
     }
 
     private fun installConfig() {

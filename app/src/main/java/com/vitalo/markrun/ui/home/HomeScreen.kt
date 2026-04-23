@@ -18,10 +18,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.vitalo.markrun.navigation.Screen
 import com.vitalo.markrun.ui.collection.CollectionScreen
+import com.vitalo.markrun.ui.common.CoinArrivedDialog
 import com.vitalo.markrun.ui.exchange.ExchangeScreen
 import com.vitalo.markrun.ui.lesson.EarnRulesDialog
 import com.vitalo.markrun.ui.lesson.LessonScreen
-import com.vitalo.markrun.ui.signin.SignInOverlay
+import com.vitalo.markrun.ui.common.GlobalOverlayManager
 import com.vitalo.markrun.ui.task.TaskScreen
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -30,7 +31,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(navController: NavController) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    var showSignIn by remember { mutableStateOf(false) }
     var showEarnRules by remember { mutableStateOf(false) }
 
     var showCoinArrivedDialog by remember { mutableStateOf(false) }
@@ -63,7 +63,7 @@ fun HomeScreen(navController: NavController) {
             when (selectedTab) {
                 0 -> LessonScreen(
                     navController = navController,
-                    onShowSignIn = { showSignIn = true },
+                    onShowSignIn = { GlobalOverlayManager.showSignInOverlay() },
                     onNavigateToWebGame = { kind ->
                         navController.navigate("web_game/$kind")
                     },
@@ -75,7 +75,7 @@ fun HomeScreen(navController: NavController) {
                     }
                 )
                 1 -> TaskScreen(
-                    onShowSignIn = { showSignIn = true },
+                    onShowSignIn = { GlobalOverlayManager.showSignInOverlay() },
                     onNavigateToWebGame = { kind ->
                         navController.navigate("web_game/$kind")
                     }
@@ -122,16 +122,12 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
-    if (showSignIn) {
-        SignInOverlay(onClose = { showSignIn = false })
-    }
-
     if (showEarnRules) {
         EarnRulesDialog(onClose = { showEarnRules = false })
     }
 
     if (showCoinArrivedDialog) {
-        com.vitalo.markrun.ui.common.CoinArrivedDialog(
+        CoinArrivedDialog(
             coinNum = arrivedCoinAmount,
             onClose = { showCoinArrivedDialog = false }
         )

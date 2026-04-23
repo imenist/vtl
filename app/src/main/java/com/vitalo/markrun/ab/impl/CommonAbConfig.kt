@@ -2,7 +2,7 @@ package com.vitalo.markrun.ab.impl
 
 import androidx.annotation.Keep
 import com.google.gson.annotations.SerializedName
-import com.vitalo.markrun.ab.BaseAbConfig
+import com.vitalo.markrun.common.ab.BaseAbConfig
 
 /**
  * 通用 AB 配置 —— 当前项目暂时用一个通用 bean 承载所有实验字段。

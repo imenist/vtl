@@ -1,5 +1,6 @@
 package com.vitalo.markrun.ab
 
+import com.vitalo.markrun.common.ab.BaseAbConfig
 import kotlin.reflect.KClass
 
 /**

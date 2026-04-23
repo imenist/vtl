@@ -16,6 +16,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven("https://artifact.bytedance.com/repository/pangle/")
+        maven("https://android-sdk.is.com/")
+        maven("https://dl-maven-android.mintegral.com/repository/mbridge_android_sdk_oversea")
     }
 }
 

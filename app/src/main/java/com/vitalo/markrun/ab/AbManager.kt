@@ -3,6 +3,7 @@ package com.vitalo.markrun.ab
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import com.vitalo.markrun.common.ab.BaseAbConfig
 import com.vitalo.markrun.config.AppConfig
 import com.vitalo.markrun.data.remote.api.ABTestApi
 import com.vitalo.markrun.data.local.prefs.AppPreferences
