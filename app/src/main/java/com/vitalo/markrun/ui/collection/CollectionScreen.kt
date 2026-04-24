@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -232,7 +233,6 @@ fun CardGridItem(
         modifier = modifier
             .size(width = cardWidth, height = cardHeight)
             .clip(RoundedCornerShape(20.dp))
-            .clickable { onClick() }
     ) {
         // Layer 1: Unlock gradient background
         if (unlocked) {
@@ -319,13 +319,15 @@ fun CardGridItem(
                 )
 
                 // Card image with opacity/blur based on progress
+                val blurRadius = 10.dp * (1f - progressPercent.coerceIn(0f, 1f))
                 Image(
                     painter = painterResource(id = card.cardImageRes),
                     contentDescription = null,
                     modifier = Modifier
                         .size(imageSize)
                         .clip(RoundedCornerShape(20.dp))
-                        .alpha(progressPercent.coerceIn(0f, 1f)),
+                        .alpha(progressPercent.coerceIn(0f, 1f))
+                        .blur(radius = blurRadius),
                     contentScale = ContentScale.Crop
                 )
 

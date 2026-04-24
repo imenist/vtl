@@ -11,6 +11,18 @@ object GlobalOverlayManager {
     var showSpinWheel by mutableStateOf(false)
         private set
 
+    var showCoinArrived by mutableStateOf(false)
+        private set
+
+    var coinArrivedAmount by mutableStateOf(0)
+        private set
+
+    var showConversionRules by mutableStateOf(false)
+        private set
+
+    var conversionRulesExchangeRate by mutableStateOf(1000.0)
+        private set
+
     fun showSignInOverlay() {
         showSignIn = true
     }
@@ -25,5 +37,23 @@ object GlobalOverlayManager {
 
     fun dismissSpinWheelOverlay() {
         showSpinWheel = false
+    }
+
+    fun showCoinArrivedOverlay(amount: Int) {
+        coinArrivedAmount = amount
+        showCoinArrived = true
+    }
+
+    fun dismissCoinArrivedOverlay() {
+        showCoinArrived = false
+    }
+
+    fun showConversionRulesOverlay(exchangeRate: Double) {
+        conversionRulesExchangeRate = exchangeRate
+        showConversionRules = true
+    }
+
+    fun dismissConversionRulesOverlay() {
+        showConversionRules = false
     }
 }

@@ -55,6 +55,7 @@ import com.vitalo.markrun.data.mock.MockDataProvider
 import com.vitalo.markrun.data.mock.WithdrawalAmount
 import com.vitalo.markrun.navigation.Screen
 import com.vitalo.markrun.ui.collection.SettingSectionView
+import com.vitalo.markrun.ui.common.CoinBalanceView
 import com.vitalo.markrun.ui.theme.VitaloTheme
 import java.text.NumberFormat
 import java.util.Locale
@@ -86,7 +87,7 @@ fun ExchangeScreen(
         countdownText = "18:32:45",
         cards = MockDataProvider.cards,
         fragmentProgress = MockDataProvider.fragmentProgress,
-        onFaqClick = {},
+        onFaqClick = { com.vitalo.markrun.ui.common.GlobalOverlayManager.showConversionRulesOverlay(1000.0) },
         onRecordClick = { navController.navigate(Screen.WithdrawRecord.route) }
     )
 }
@@ -223,6 +224,7 @@ fun ExchangeScreenContent(
 // region ──── ExchangeTopBar ────
 // ═══════════════════════════════════════════════════════════════════════════════
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 private fun ExchangeTopBar(
     coinBalance: Int,
@@ -238,9 +240,7 @@ private fun ExchangeTopBar(
             .padding(top = 8.dp)
     ) {
         // Left: CoinBalancePill
-        CoinBalancePill(
-            coinBalance = coinBalance,
-            coinExchangeRate = coinExchangeRate,
+        CoinBalanceView(
             modifier = Modifier.align(Alignment.CenterStart)
         )
 
@@ -259,152 +259,37 @@ private fun ExchangeTopBar(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(end = 18.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Image(
-    painter = painterResource(id = com.vitalo.markrun.R.drawable.ic_exchange_faq),
-    contentDescription = null,
-    modifier = Modifier
+                    painter = painterResource(id = com.vitalo.markrun.R.drawable.ic_exchange_faq),
+                    contentDescription = null,
+                    modifier = Modifier
                         .size(32.dp)
-                        .padding(end = 10.dp)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { onFaqClick() },
-    contentScale = ContentScale.Crop
-)
+                    contentScale = ContentScale.Fit
+                )
                 Image(
-    painter = painterResource(id = com.vitalo.markrun.R.drawable.ic_exchange_record),
-    contentDescription = null,
-    modifier = Modifier
+                    painter = painterResource(id = com.vitalo.markrun.R.drawable.ic_exchange_record),
+                    contentDescription = null,
+                    modifier = Modifier
                         .size(32.dp)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { onRecordClick() },
-    contentScale = ContentScale.Crop
-)
+                    contentScale = ContentScale.Fit
+                )
             }
         }
     }
 }
 
 // endregion
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// region ──── CoinBalancePill ────
-// ═══════════════════════════════════════════════════════════════════════════════
-
-@Composable
-private fun CoinBalancePill(
-    coinBalance: Int,
-    coinExchangeRate: Double,
-    showExchange: Boolean = true,
-    modifier: Modifier = Modifier
-) {
-    val cornerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
-    val formattedBalance = remember(coinBalance) {
-        NumberFormat.getIntegerInstance().format(coinBalance)
-    }
-    val hasRate = coinExchangeRate > 0
-
-    Row(
-        modifier = modifier
-            .height(48.dp)
-            .clip(cornerShape)
-            .background(
-                Brush.horizontalGradient(
-                    colorStops = arrayOf(
-                        0.0f to Color(0xFFA1C21C),
-                        0.5f to Color(0xFFA3C93B),
-                        1.0f to Color(0xFF2E824F)
-                    )
-                )
-            )
-            .border(0.5.dp, Color.White.copy(alpha = 0.4f), cornerShape)
-            .padding(start = 1.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (!hasRate) {
-            // Simple mode: icon + coin number
-            Image(
-    painter = painterResource(id = com.vitalo.markrun.R.drawable.ic_coin_balance),
-    contentDescription = null,
-    modifier = Modifier.size(24.dp),
-    contentScale = ContentScale.Crop
-)
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = formattedBalance,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                fontStyle = FontStyle.Italic,
-                color = Color.White
-            )
-        } else {
-            // Rate mode: VStack with smaller icon+coin and ≈$xx
-            Column(
-                modifier = Modifier.padding(start = 4.dp),
-                horizontalAlignment = Alignment.Start
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-    painter = painterResource(id = com.vitalo.markrun.R.drawable.ic_coin_balance),
-    contentDescription = null,
-    modifier = Modifier.size(width = 16.8.dp, height = 18.dp),
-    contentScale = ContentScale.Crop
-)
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = formattedBalance,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-                val dollarValue = if (coinExchangeRate > 0) coinBalance / coinExchangeRate else 0.0
-                Text(
-                    text = "≈ $${String.format(Locale.US, "%.2f", dollarValue)}",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFFED42)
-                )
-            }
-        }
-
-        if (showExchange) {
-            Spacer(modifier = Modifier.width(6.dp))
-            // Redeem button
-            Box(
-                modifier = Modifier
-                    .height(34.dp)
-                    .clip(RoundedCornerShape(17.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                Color(0xFFFFEF3E),
-                                Color(0xFFF7FFBB),
-                                Color(0xFFCDFF76)
-                            )
-                        )
-                    )
-                    .padding(horizontal = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Redeem",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontStyle = FontStyle.Italic,
-                    color = Color(0xFF324B1A)
-                )
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-        } else {
-            Spacer(modifier = Modifier.width(25.dp))
-        }
-    }
-}
 
 // endregion
 
@@ -536,7 +421,11 @@ private fun MyWalletWithAdView(
                         fontSize = 42.sp,
                         fontWeight = FontWeight.Bold,
                         fontStyle = FontStyle.Italic,
-                        color = Color(0xFF37511B)
+                        style = androidx.compose.ui.text.TextStyle(
+                            brush = Brush.linearGradient(
+                                colors = listOf(Color.Black, Color(0xFF37511B), Color(0xFF669A35))
+                            )
+                        )
                     )
                 }
             }
@@ -580,8 +469,7 @@ private fun MyWalletWithAdView(
                     Text(
                         text = "$adReward",
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                 }
@@ -628,7 +516,11 @@ private fun MyWalletView(
                 text = formattedCoin,
                 fontSize = 48.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF37511B),
+                style = androidx.compose.ui.text.TextStyle(
+                    brush = Brush.linearGradient(
+                        colors = listOf(Color.Black, Color(0xFF37511B), Color(0xFF669A35))
+                    )
+                ),
                 maxLines = 1
             )
         }
@@ -806,18 +698,19 @@ private fun WithdrawalCellView(
         ) {
             // Background mark
             Image(
-    painter = painterResource(id = if (underReview) com.vitalo.markrun.R.drawable.img_exchange_option_bg_mark_review
+                painter = painterResource(id = if (underReview) com.vitalo.markrun.R.drawable.img_exchange_option_bg_mark_review
                 else com.vitalo.markrun.R.drawable.img_exchange_option_bg_mark),
-    contentDescription = null,
-    modifier = Modifier
+                contentDescription = null,
+                modifier = Modifier
                     .size(width = bgMarkWidth, height = bgMarkHeight)
                     .align(Alignment.BottomEnd),
-    contentScale = ContentScale.Crop
-)
+                contentScale = ContentScale.Crop
+            )
 
             Column(
                 modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 // Currency amount
                 Text(

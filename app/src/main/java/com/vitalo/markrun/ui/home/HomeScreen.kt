@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.vitalo.markrun.navigation.Screen
 import com.vitalo.markrun.ui.collection.CollectionScreen
-import com.vitalo.markrun.ui.common.CoinArrivedDialog
 import com.vitalo.markrun.ui.exchange.ExchangeScreen
 import com.vitalo.markrun.ui.lesson.EarnRulesDialog
 import com.vitalo.markrun.ui.lesson.LessonScreen
@@ -32,9 +31,6 @@ import kotlinx.coroutines.launch
 fun HomeScreen(navController: NavController) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showEarnRules by remember { mutableStateOf(false) }
-
-    var showCoinArrivedDialog by remember { mutableStateOf(false) }
-    var arrivedCoinAmount by remember { mutableIntStateOf(0) }
 
     val scope = rememberCoroutineScope()
     var earnCoin by remember { mutableIntStateOf(200) }
@@ -68,7 +64,7 @@ fun HomeScreen(navController: NavController) {
                         navController.navigate("web_game/$kind")
                     },
                     onTapExchange = {
-                        selectedTab = 3
+                        selectedTab = 4
                     },
                     onTapEarnRules = {
                         showEarnRules = true
@@ -102,8 +98,7 @@ fun HomeScreen(navController: NavController) {
                             delay(900)
                             earnIsLoading = false
                             
-                            arrivedCoinAmount = earnCoin
-                            showCoinArrivedDialog = true
+                            GlobalOverlayManager.showCoinArrivedOverlay(earnCoin)
                             
                             earnIsCooling = true
                             earnCooldownLeft = earnCooldownTotal
@@ -124,12 +119,5 @@ fun HomeScreen(navController: NavController) {
 
     if (showEarnRules) {
         EarnRulesDialog(onClose = { showEarnRules = false })
-    }
-
-    if (showCoinArrivedDialog) {
-        CoinArrivedDialog(
-            coinNum = arrivedCoinAmount,
-            onClose = { showCoinArrivedDialog = false }
-        )
     }
 }

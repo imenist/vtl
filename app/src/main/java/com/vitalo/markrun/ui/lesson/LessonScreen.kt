@@ -220,6 +220,7 @@ private fun TopBarContent(
     ) {
         CoinBalanceView(
             showExchange = true,
+            coinExchangeRate = 1000.0,
             onTapExchange = onTapExchange,
             modifier = Modifier.offset(x = (-1).dp)
         )

@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -55,15 +56,19 @@ fun CoinBalanceView(
         modifier = modifier
             .height(48.dp)
             .clip(cornerShape)
-            .background(
-                Brush.horizontalGradient(
-                    colorStops = arrayOf(
-                        0.0f to Color(0xFF2E824F),
-                        0.82f to Color(0xFFA3C93B),
-                        1.0f to Color(0xFFA1C21C)
+            .drawBehind {
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colorStops = arrayOf(
+                            0.00f to Color(0xFFA1C21C),
+                            0.18f to Color(0xFFA3C93B),
+                            1.00f to Color(0xFF2E824F),
+                        ),
+                        startX = size.width * 1.35f,
+                        endX = size.width * -0.16f
                     )
                 )
-            )
+            }
             .border(0.5.dp, Color.White.copy(alpha = 0.4f), cornerShape),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -73,16 +78,16 @@ fun CoinBalanceView(
             Spacer(modifier = Modifier.width(6.dp))
 
             androidx.compose.foundation.layout.Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.Start
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_coin_balance),
                         contentDescription = null,
-                        modifier = Modifier.size(17.dp),
+                        modifier = Modifier.size(width = 16.8.dp, height = 18.dp),
                         contentScale = ContentScale.Fit
                     )
-                    Spacer(modifier = Modifier.width(3.dp))
+                    Spacer(modifier = Modifier.width(2.6.dp))
                     Text(
                         text = NumberFormat.getIntegerInstance().format(totalCoin.toInt()),
                         fontSize = 12.sp,
@@ -94,7 +99,7 @@ fun CoinBalanceView(
                     text = "≈ ${formatCurrency(totalCoin / coinExchangeRate)}",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFFEE42)
+                    color = Color(0xFFFFF042)
                 )
             }
         } else {

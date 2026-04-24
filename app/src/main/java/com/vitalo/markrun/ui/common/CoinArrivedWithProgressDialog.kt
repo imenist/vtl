@@ -14,12 +14,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -28,12 +30,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.activity.compose.BackHandler
 import com.vitalo.markrun.R
 import java.text.NumberFormat
+import java.util.Locale
 
 @Composable
-fun CoinArrivedDialog(
+fun CoinArrivedWithProgressDialog(
     coinNum: Int,
     desc: String = "CaloCoins Have Arrived",
-    getButtonText: String = "Got it!",
+    getButtonText: String,
     showBalance: Boolean = true,
     showAdButton: Boolean = false,
     showFingerGuide: Boolean = false,
@@ -44,11 +47,17 @@ fun CoinArrivedDialog(
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val lottieWidth = screenWidth
-    val lottieHeight = lottieWidth / (375f / 427f)
+    val lottieHeight = lottieWidth / (938f / 1571f)
     val scaleX = (screenWidth.value / 375f)
-    val scaleY = (lottieHeight.value / 427f)
+    val scaleY = (lottieHeight.value / 628f)
 
     val currentCoin by coinBalanceViewModel.coinBalance.collectAsState()
+    val coinExchangeRate = 1000.0
+    val targetCash = 30.0
+    val targetCoin = targetCash * coinExchangeRate
+    val needCoin = targetCoin - currentCoin
+    val percentage = if (needCoin > 0) (currentCoin / targetCoin).toFloat() else 1f
+
     var progress by remember { mutableFloatStateOf(0f) }
     var animatedBalance by remember { mutableDoubleStateOf(maxOf(0.0, currentCoin - coinNum)) }
 
@@ -89,14 +98,14 @@ fun CoinArrivedDialog(
                 .align(Alignment.Center)
         ) {
                 CommonLottieView(
-                    animationName = "CoinArrivedDialog",
+                    animationName = "CoinArrivedWithProgressDialog",
                     loop = false,
                     modifier = Modifier.size(lottieWidth, lottieHeight),
                     onProgressChange = { progress = it }
                 )
 
                 val contentAlpha by animateFloatAsState(
-                    targetValue = if (progress < 0.5f) 0f else ((progress - 0.5f) * 2f),
+                    targetValue = if (progress < 0.19f) 0f else if (progress < 0.38f) ((progress - 0.19f) / 0.19f) else 1f,
                     animationSpec = tween(0),
                     label = "contentAlpha"
                 )
@@ -104,7 +113,7 @@ fun CoinArrivedDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = (63 * scaleY).dp)
+                        .padding(top = (158 * scaleY).dp)
                         .alpha(contentAlpha),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -116,7 +125,7 @@ fun CoinArrivedDialog(
                         color = Color.Black,
                         modifier = Modifier
                             .width((256 * scaleX).dp)
-                            .padding(start = (13 * scaleX).dp)
+                            .padding(start = (34 * scaleX).dp, top = (18 * scaleY).dp)
                     )
 
                     Text(
@@ -124,12 +133,12 @@ fun CoinArrivedDialog(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Normal,
                         color = Color.Black,
-                        modifier = Modifier.padding(top = (31 * scaleY).dp)
+                        modifier = Modifier.padding(top = (33 * scaleY).dp)
                     )
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = (4 * scaleY).dp)
+                        modifier = Modifier.padding(top = (12 * scaleY).dp)
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.img_coin_arrived_dialog_coin),
@@ -147,7 +156,84 @@ fun CoinArrivedDialog(
                     }
 
                     Box(
-                        modifier = Modifier.padding(top = (53 * scaleY).dp)
+                        modifier = Modifier
+                            .padding(top = (12 * scaleY).dp)
+                            .width((215 * scaleX).dp)
+                            .height((36 * scaleY).dp)
+                    ) {
+                        // Progress bar background
+                        Box(
+                            modifier = Modifier
+                                .width((215 * scaleX).dp)
+                                .height((12 * scaleY).dp)
+                                .clip(RoundedCornerShape((6 * scaleY).dp))
+                                .background(Color.Black.copy(alpha = 0.1f))
+                                .align(Alignment.CenterStart)
+                        )
+                        // Progress bar fill
+                        Box(
+                            modifier = Modifier
+                                .width((215 * scaleX * percentage).dp)
+                                .height((12 * scaleY).dp)
+                                .clip(RoundedCornerShape((6 * scaleY).dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(Color(0xFFF56B96), Color(0xFFF7E840))
+                                    )
+                                )
+                                .align(Alignment.CenterStart)
+                        )
+                        // Target cash icon
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .offset(x = (9 * scaleX).dp, y = (-1 * scaleY).dp)
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.img_conversion_rules_cash),
+                                contentDescription = null,
+                                modifier = Modifier.size((46 * scaleX).dp, (46 * scaleY).dp)
+                            )
+                            Text(
+                                text = "$${targetCash.toInt()}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.Black.copy(alpha = 0.7f),
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .offset(y = (13 * scaleY).dp)
+                            )
+                        }
+                        // Current progress icon
+                        if (percentage <= 0.82f) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.CenterStart)
+                                    .offset(
+                                        x = (-6 * scaleX + (215 - 36 + 12) * scaleX * percentage).dp,
+                                        y = (4 * scaleY).dp
+                                    )
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_running_pick_coin_stack),
+                                    contentDescription = null,
+                                    modifier = Modifier.size((36 * scaleX).dp, (36 * scaleY).dp)
+                                )
+                                Text(
+                                    text = String.format(Locale.US, "%.1f%%", percentage * 100),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.Black.copy(alpha = 0.7f),
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .offset(y = (13 * scaleY).dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier.padding(top = (62 * scaleY).dp)
                     ) {
                         if (showAdButton) {
                             Box(
@@ -165,7 +251,7 @@ fun CoinArrivedDialog(
                                         contentDescription = null,
                                         modifier = Modifier.size((33 * scaleX).dp, (26 * scaleY).dp)
                                     )
-                                    Spacer(modifier = Modifier.width((8 * scaleX).dp))
+                                    Spacer(modifier = Modifier.width((2 * scaleX).dp))
                                     Text(
                                         text = "Double Claim",
                                         fontSize = 18.sp,
@@ -211,7 +297,7 @@ fun CoinArrivedDialog(
                         painter = painterResource(id = R.drawable.ic_coin_arrived_dialog_close),
                         contentDescription = "Close",
                         modifier = Modifier
-                            .padding(top = (52 * scaleY).dp)
+                            .padding(top = (47 * scaleY).dp)
                             .size((30 * scaleX).dp, (30 * scaleY).dp)
                             .clickable(
                                 indication = null,

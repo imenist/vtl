@@ -54,6 +54,7 @@ import com.vitalo.markrun.data.remote.model.DailyTaskInfo
 import com.vitalo.markrun.data.remote.model.DailyTaskKind
 import com.vitalo.markrun.data.remote.model.DailyTaskStatus
 import com.vitalo.markrun.ui.theme.VitaloTheme
+import com.vitalo.markrun.ui.common.CoinBalanceView
 import java.text.NumberFormat
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -294,6 +295,7 @@ fun TaskScreenContent(
 // region ──── TopBar + CoinBalancePill ────
 // ═══════════════════════════════════════════════════════════════════════════════
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun TaskTopBarContent(
     coinBalance: Int,
@@ -305,8 +307,7 @@ fun TaskTopBarContent(
             .padding(top = 8.dp)
             .height(48.dp)
     ) {
-        CoinBalancePill(
-            coinBalance = coinBalance,
+        CoinBalanceView(
             modifier = Modifier.align(Alignment.CenterStart)
         )
         Text(
@@ -315,60 +316,6 @@ fun TaskTopBarContent(
             fontWeight = FontWeight.SemiBold,
             color = TaskTitleColor,
             modifier = Modifier.align(Alignment.Center)
-        )
-    }
-}
-
-@Composable
-private fun CoinBalancePill(
-    coinBalance: Int,
-    modifier: Modifier = Modifier
-) {
-    val pillShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
-
-    Row(
-        modifier = modifier
-            .height(48.dp)
-            .clip(pillShape)
-            .drawBehind {
-                drawRect(
-                    brush = Brush.horizontalGradient(
-                        colorStops = arrayOf(
-                            0.00f to CoinPillLight,
-                            0.18f to CoinPillMid,
-                            1.00f to CoinPillDark,
-                        ),
-                        startX = size.width * 1.35f,
-                        endX = size.width * -0.16f
-                    )
-                )
-            }
-            .border(0.5.dp, Color.White.copy(alpha = 0.4f), pillShape)
-            .padding(start = 8.dp, end = 25.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TaskImage(
-            resName = "ic_coin_balance",
-            modifier = Modifier.size(24.dp),
-            placeholderContent = {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFFD700)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("¢", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF8B6914))
-                }
-            }
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = NumberFormat.getIntegerInstance().format(coinBalance),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            fontStyle = FontStyle.Italic,
-            color = Color.White
         )
     }
 }

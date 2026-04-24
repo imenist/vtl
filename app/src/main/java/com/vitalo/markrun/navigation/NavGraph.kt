@@ -205,6 +205,19 @@ fun NavGraph() {
         if (GlobalOverlayManager.showSignIn) {
             SignInOverlay(onClose = { GlobalOverlayManager.dismissSignInOverlay() })
         }
+        if (GlobalOverlayManager.showCoinArrived) {
+            com.vitalo.markrun.ui.common.UnifiedCoinArrivedDialog(
+                coinNum = GlobalOverlayManager.coinArrivedAmount,
+                getButtonText = "Get More",
+                onClose = { GlobalOverlayManager.dismissCoinArrivedOverlay() }
+            )
+        }
+        if (GlobalOverlayManager.showConversionRules) {
+            com.vitalo.markrun.ui.exchange.ConversionRulesDialog(
+                coinExchangeRate = GlobalOverlayManager.conversionRulesExchangeRate,
+                onClose = { GlobalOverlayManager.dismissConversionRulesOverlay() }
+            )
+        }
 
         // Debug 悬浮窗
         var debugOffsetX by remember { mutableFloatStateOf(0f) }
@@ -222,7 +235,7 @@ fun NavGraph() {
                             debugOffsetY.toInt()
                         )
                     }
-                    .size(48.dp)
+                    .size(50.dp)
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
                             change.consume()
@@ -230,9 +243,16 @@ fun NavGraph() {
                             debugOffsetY += dragAmount.y
                         }
                     },
-                containerColor = androidx.compose.ui.graphics.Color(0x88000000)
+                shape = androidx.compose.foundation.shape.CircleShape,
+                containerColor = androidx.compose.ui.graphics.Color.Red,
+                contentColor = androidx.compose.ui.graphics.Color.White
             ) {
-                androidx.compose.material3.Text("Debug", fontSize = 10.sp, color = androidx.compose.ui.graphics.Color.White)
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = com.vitalo.markrun.R.drawable.ic_debug_bug),
+                    contentDescription = "Debug",
+                    modifier = Modifier.size(25.dp),
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(androidx.compose.ui.graphics.Color.White)
+                )
             }
         }
     }

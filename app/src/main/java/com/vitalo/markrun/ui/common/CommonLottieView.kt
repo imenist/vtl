@@ -14,7 +14,8 @@ fun CommonLottieView(
     animationName: String,
     loop: Boolean = true,
     speed: Float = 1f,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onProgressChange: (Float) -> Unit = {}
 ) {
     val composition by rememberLottieComposition(
         LottieCompositionSpec.Asset("lottie/$animationName/data.json"),
@@ -25,6 +26,11 @@ fun CommonLottieView(
         iterations = if (loop) LottieConstants.IterateForever else 1,
         speed = speed
     )
+    
+    androidx.compose.runtime.LaunchedEffect(progress) {
+        onProgressChange(progress)
+    }
+    
     LottieAnimation(
         composition = composition,
         progress = { progress },
