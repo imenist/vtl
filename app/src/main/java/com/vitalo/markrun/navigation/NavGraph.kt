@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -167,13 +169,6 @@ fun NavGraph() {
         }
 
         // ─── Phase 5: Profile, Settings, Activities, WebView ───
-        dialog(
-            route = Screen.SpinWheel.route,
-            dialogProperties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            SpinWheelScreen(navController = navController)
-        }
-
         composable(
             route = Screen.WebGame.route,
             arguments = listOf(
@@ -204,13 +199,16 @@ fun NavGraph() {
     }
 
         // 全局 Overlay 显示区域
+        if (GlobalOverlayManager.showSpinWheel) {
+            SpinWheelScreen(onClose = { GlobalOverlayManager.dismissSpinWheelOverlay() })
+        }
         if (GlobalOverlayManager.showSignIn) {
             SignInOverlay(onClose = { GlobalOverlayManager.dismissSignInOverlay() })
         }
 
         // Debug 悬浮窗
-        var debugOffsetX by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-        var debugOffsetY by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(300f) }
+        var debugOffsetX by remember { mutableFloatStateOf(0f) }
+        var debugOffsetY by remember { mutableFloatStateOf(300f) }
 
         Box(
             modifier = Modifier.fillMaxSize()

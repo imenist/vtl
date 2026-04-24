@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
@@ -43,13 +45,13 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.vitalo.markrun.R
 import com.vitalo.markrun.ui.common.CommonLottieView
 import kotlinx.coroutines.Job
@@ -61,7 +63,7 @@ import kotlin.random.Random
 
 @Composable
 fun SpinWheelScreen(
-    navController: NavController
+    onClose: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
 
@@ -194,6 +196,11 @@ fun SpinWheelScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.8f))
+            .pointerInput(Unit){
+                detectTapGestures {
+                    //ignore
+                }
+            }
     ) {
         // Main Content
         Column(
@@ -416,7 +423,7 @@ fun SpinWheelScreen(
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
-                            navController.popBackStack()
+                            onClose()
                         }
                 )
             }
@@ -444,7 +451,18 @@ fun SpinWheelScreen(
                 coinNum = resultCoinAmount,
                 onClose = {
                     showResult = false
-                    navController.popBackStack()
+                    isEntranceComplete = true
+                    wheelOpacity = 1f
+                    rotationDeg = 0f
+                    targetRotation = 0f
+                    skipButtonClicked = false
+                    isSpinning = false
+                    isCompleting = false
+                    isCountingDown = true
+                    scope.launch {
+                        delay(2800)
+                        isCountingDown = false
+                    }
                 },
                 onPlayAgain = {
                     showResult = false
@@ -617,72 +635,125 @@ private fun SpinWheelRewardDialog(
         // Dialog Content
         Column(
             modifier = Modifier
+                .align(Alignment.Center)
                 .fillMaxSize()
                 .graphicsLayer { alpha = contentOpacity },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(260.dp))
 
             Text(
-                text = "Congrats!",
-                fontSize = 24.sp,
+                text = "恭喜!",
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                fontStyle = FontStyle.Italic,
-                color = Color.White
+                color = Color.Black,
+                modifier = Modifier
+                    .width(256.dp)
+                    .padding(start = 10.dp)
             )
 
-            Spacer(modifier = Modifier.height(23.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // 金币与汇率换算背景 bg_spin_exchange (placeholder color if missing)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.img_coin_arrived_dialog_coin),
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    contentScale = ContentScale.Fit
+                )
+                Text(
+                    text = coinNum.toString(),
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            // 金币与汇率换算背景
             Box(
                 modifier = Modifier
-                    .size(240.dp, 80.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0x33FFFFFF)), // Placeholder for bg_spin_exchange
-                contentAlignment = Alignment.Center
+                    .size(206.dp, 90.dp)
             ) {
+
+                Image(
+                    painter = painterResource(R.drawable.bg_spin_exchange),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize()
+                )
+                
                 Row(
+                    modifier = Modifier.fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.img_coin_arrived_dialog_coin),
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                    Text(
-                        text = coinNum.toString(),
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFFD700),
-                        modifier = Modifier.padding(start = 4.dp, end = 12.dp)
-                    )
-                    
-                    Text(
-                        text = "=",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.img_running_pick_coin_stack),
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                        Text(
+                            text = coinNum.toString(),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = "CaloCoin",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF0D120E)
+                        )
+                    }
 
                     Text(
-                        text = String.format(java.util.Locale.US, "US$%.2f", coinNum * 0.01),
-                        fontSize = 24.sp,
+                        text = "=",
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(start = 12.dp)
+                        color = Color.Black.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(horizontal = 19.dp)
                     )
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.img_conversion_rules_cash),
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                        Text(
+                            text = String.format(java.util.Locale.US, "%.2f", coinNum * 0.01).replace(Regex("0+$"), "").replace(Regex("\\.$"), ""),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFF9500)
+                        )
+                        Text(
+                            text = "US$",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF0D120E)
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(47.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
             // Claim Button with Lottie
             Box(
                 modifier = Modifier
-                    .size(230.dp, 60.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 40.dp)
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
@@ -692,19 +763,21 @@ private fun SpinWheelRewardDialog(
                 CommonLottieView(
                     animationName = "SpinWheelAdBtn",
                     loop = true,
-                    modifier = Modifier.size(270.dp, 107.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 5.dp)
+                    modifier = Modifier.padding(top = 0.dp)
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_exchange_ad_play),
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(17.dp, 14.dp),
                         contentScale = ContentScale.Fit
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Claim x 1.2",
                         fontSize = 18.sp,
@@ -715,7 +788,7 @@ private fun SpinWheelRewardDialog(
                 }
             }
 
-            Spacer(modifier = Modifier.height(66.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
             // Close Button
             Image(

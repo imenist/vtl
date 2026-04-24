@@ -62,6 +62,7 @@ import com.vitalo.markrun.ui.common.CommonEmptyView
 import com.vitalo.markrun.ui.common.CommonErrorView
 import com.vitalo.markrun.ui.common.CommonLoadingView
 import com.vitalo.markrun.ui.common.CommonLottieView
+import com.vitalo.markrun.ui.common.GlobalOverlayManager
 import com.vitalo.markrun.ui.stepcounter.StepCounterView
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -192,7 +193,7 @@ private fun LessonHeader(
             modifier = Modifier
                 .padding(top = 70.dp, end = 6.dp)
                 .align(Alignment.TopEnd),
-            onTap = { navController.navigate(Screen.SpinWheel.route) }
+            onTap = { GlobalOverlayManager.showSpinWheelOverlay() }
         )
 
         DailySignEntranceButton(
