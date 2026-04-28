@@ -32,13 +32,20 @@ fun RunningMapView(
     }
 
     LaunchedEffect(fitToRoute, locations.size) {
-        if (fitToRoute && locations.size >= 2) {
-            val boundsBuilder = LatLngBounds.builder()
-            locations.forEach { boundsBuilder.include(it) }
-            cameraPositionState.animate(
-                CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 48),
-                durationMs = 300
-            )
+        if (fitToRoute) {
+            if (locations.size >= 2) {
+                val boundsBuilder = LatLngBounds.builder()
+                locations.forEach { boundsBuilder.include(it) }
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 48),
+                    durationMs = 300
+                )
+            } else if (locations.isNotEmpty()) {
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newLatLngZoom(locations.first(), 16f),
+                    durationMs = 300
+                )
+            }
         }
     }
 

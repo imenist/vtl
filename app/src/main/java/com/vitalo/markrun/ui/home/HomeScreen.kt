@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.vitalo.markrun.navigation.Screen
 import com.vitalo.markrun.ui.collection.CollectionScreen
@@ -31,6 +32,7 @@ import kotlinx.coroutines.launch
 fun HomeScreen(navController: NavController) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showEarnRules by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val scope = rememberCoroutineScope()
     var earnCoin by remember { mutableIntStateOf(200) }
@@ -47,7 +49,12 @@ fun HomeScreen(navController: NavController) {
                 onTabTapped = { tab ->
                     when (tab) {
                         2 -> {
-                            navController.navigate(Screen.LocationPermission.route)
+                            val prefs = context.getSharedPreferences("vitalo_prefs", android.content.Context.MODE_PRIVATE)
+                            if (prefs.getBoolean("hasShownLocationPermission", false)) {
+                                navController.navigate(Screen.RunTracker.route)
+                            } else {
+                                navController.navigate(Screen.LocationPermission.route)
+                            }
                         }
                         else -> selectedTab = tab
                     }
@@ -74,6 +81,9 @@ fun HomeScreen(navController: NavController) {
                     onShowSignIn = { GlobalOverlayManager.showSignInOverlay() },
                     onNavigateToWebGame = { kind ->
                         navController.navigate("web_game/$kind")
+                    },
+                    onNavigateToWebGameWithIndex = { kind, index ->
+                        navController.navigate("web_game/$kind?index=$index")
                     }
                 )
                 3 -> CollectionScreen()

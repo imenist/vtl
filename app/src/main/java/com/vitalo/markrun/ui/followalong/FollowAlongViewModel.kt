@@ -24,6 +24,12 @@ class FollowAlongViewModel @Inject constructor() : ViewModel() {
     private val _progress = MutableStateFlow(0.0)
     val progress: StateFlow<Double> = _progress.asStateFlow()
 
+    private val _bonusProgress = MutableStateFlow(0.0)
+    val bonusProgress: StateFlow<Double> = _bonusProgress.asStateFlow()
+
+    private var bonusElapsedSeconds = 0.0
+    private val bonusDurationSeconds = 7.0
+
     private val _currentPlayedSeconds = MutableStateFlow(0.0)
     val currentPlayedSeconds: StateFlow<Double> = _currentPlayedSeconds.asStateFlow()
 
@@ -53,7 +59,7 @@ class FollowAlongViewModel @Inject constructor() : ViewModel() {
                 val maxDuration = (actions.getOrNull(idx)?.duration ?: 0).toDouble()
                 minOf(value, maxDuration)
             }.sum()
-            return (totalSeconds / 60.0).toInt()
+            return Math.round(totalSeconds / 60.0).toInt()
         }
 
     val totalWorkoutCalorie: Int
@@ -63,7 +69,7 @@ class FollowAlongViewModel @Inject constructor() : ViewModel() {
                 val maxDuration = (actions.getOrNull(idx)?.duration ?: 0).toDouble()
                 minOf(value, maxDuration)
             }.sum()
-            return ((totalLessonCalorie / totalLessonDuration) * totalSeconds).toInt()
+            return Math.round((totalLessonCalorie / totalLessonDuration) * totalSeconds).toInt()
         }
 
     fun load(mountActions: List<MountAction>, training: Training?) {
@@ -80,12 +86,22 @@ class FollowAlongViewModel @Inject constructor() : ViewModel() {
     }
 
     fun updatePlayedSeconds(seconds: Double) {
+        val delta = seconds - _currentPlayedSeconds.value
         _currentPlayedSeconds.value = seconds
         val duration = (actions.getOrNull(_currentIndex.value)?.duration ?: 0).toDouble()
         if (duration > 0) {
             _progress.value = minOf(1.0, seconds / duration)
         }
         actionDurations[_currentIndex.value] = minOf(seconds, duration)
+
+        if (delta > 0 && _isPlaying.value) {
+            bonusElapsedSeconds += delta
+            if (bonusElapsedSeconds >= bonusDurationSeconds) {
+                bonusElapsedSeconds = 0.0
+                // TODO: Trigger bonus reward logic
+            }
+            _bonusProgress.value = minOf(1.0, bonusElapsedSeconds / bonusDurationSeconds)
+        }
 
         if (seconds >= duration && duration > 0) {
             nextAction(auto = true)

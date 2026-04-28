@@ -35,13 +35,14 @@ import com.vitalo.markrun.util.DeviceInfoUtils
 fun WebViewScreen(
     navController: NavController,
     kind: String,
+    index: Int = -1,
     loginManager: LoginManager? = null,
     userManager: UserManager? = null,
     appPreferences: AppPreferences? = null
 ) {
     var isLoading by remember { mutableStateOf(true) }
     var showError by remember { mutableStateOf(false) }
-    val url = remember(kind) { getWebGameUrl(kind) }
+    val url = remember(kind, index) { getWebGameUrl(kind, index) }
 
     Box(
         modifier = Modifier
@@ -170,7 +171,7 @@ fun WebViewScreen(
     }
 }
 
-private fun getWebGameUrl(kind: String): String {
+private fun getWebGameUrl(kind: String, index: Int): String {
     val language = java.util.Locale.getDefault().language
     val build = com.vitalo.markrun.BuildConfig.VERSION_CODE
     val baseUrl = when (kind) {
@@ -179,6 +180,8 @@ private fun getWebGameUrl(kind: String): String {
         "spinWheel" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageWheel"
         "smashEgg" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageSmashEgg"
         "signIn" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageSignIn"
+        "dailyRelaxation" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageBlank?game=dailyRelaxation"
+        "multiDailyRelaxation" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageBlank?game=multiDailyRelaxation&index=$index"
         else -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageBlank?game=$kind"
     }
     

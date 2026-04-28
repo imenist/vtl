@@ -38,10 +38,11 @@ import com.vitalo.markrun.ui.theme.GradientGreenStart
 fun WorkoutResultScreen(
     navController: NavController,
     duration: Int = 0,
-    calorie: Int = 0
+    calorie: Int = 0,
+    hasCompleted: Boolean = false
 ) {
     val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val hasReward = duration > 0
+    val hasReward = duration > 0 || calorie > 0 || hasCompleted
 
     Box(
         modifier = Modifier

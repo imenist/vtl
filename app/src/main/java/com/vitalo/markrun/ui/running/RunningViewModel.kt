@@ -72,9 +72,42 @@ class RunningViewModel @Inject constructor(
 
     private val activeSpeedThreshold = 0.5 // m/s
 
+    init {
+        // Start locating immediately to show current position before starting
+        locationService.startUpdating()
+        
+        locationService.getLastLocation { loc ->
+            if (loc != null && _state.value == RunningState.NOT_STARTED && _locations.value.isEmpty()) {
+                val point = RunningLocationPoint(
+                    latitude = loc.latitude,
+                    longitude = loc.longitude,
+                    timestamp = System.currentTimeMillis(),
+                    speed = loc.speed.toDouble()
+                )
+                _locations.value = listOf(point)
+            }
+        }
+
+        viewModelScope.launch {
+            locationService.currentLocation.collect { loc ->
+                if (loc != null && _state.value == RunningState.NOT_STARTED) {
+                    val point = RunningLocationPoint(
+                        latitude = loc.latitude,
+                        longitude = loc.longitude,
+                        timestamp = System.currentTimeMillis(),
+                        speed = loc.speed.toDouble()
+                    )
+                    // Keep updating the single location point so the map stays centered on the user
+                    _locations.value = listOf(point)
+                }
+            }
+        }
+    }
+
     fun startRunning() {
         _state.value = RunningState.RUNNING
-        _locations.value = emptyList()
+        val lastLoc = _locations.value.lastOrNull()
+        _locations.value = if (lastLoc != null) listOf(lastLoc) else emptyList()
         _duration.value = 0.0
         _distance.value = 0.0
         _currentSpeed.value = 0.0

@@ -1,17 +1,23 @@
 package com.vitalo.markrun.navigation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,7 +27,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.vitalo.markrun.R
 import com.vitalo.markrun.ui.common.GlobalOverlayManager
+import com.vitalo.markrun.ui.debug.AppDebugScreen
+import com.vitalo.markrun.ui.exchange.ConversionRulesDialog
 import com.vitalo.markrun.ui.followalong.FollowAlongScreen
 import com.vitalo.markrun.ui.followalong.WorkoutResultScreen
 import com.vitalo.markrun.ui.home.HomeScreen
@@ -120,12 +129,25 @@ fun NavGraph() {
                 navController = navController,
                 trainingCode = trainingCode,
                 lessonCode = lessonCode,
-                actions = emptyList()
+                actions = com.vitalo.markrun.data.LessonDataStore.currentActions,
+                training = com.vitalo.markrun.data.LessonDataStore.currentTraining
             )
         }
 
-        composable(Screen.WorkoutResult.route) {
-            WorkoutResultScreen(navController = navController)
+        composable(
+            route = Screen.WorkoutResult.route,
+            arguments = listOf(
+                navArgument("duration") { type = NavType.IntType },
+                navArgument("calorie") { type = NavType.IntType },
+                navArgument("hasCompleted") { type = NavType.BoolType }
+            )
+        ) { backStackEntry ->
+            WorkoutResultScreen(
+                navController = navController,
+                duration = backStackEntry.arguments?.getInt("duration") ?: 0,
+                calorie = backStackEntry.arguments?.getInt("calorie") ?: 0,
+                hasCompleted = backStackEntry.arguments?.getBoolean("hasCompleted") ?: false
+            )
         }
 
         // ─── Phase 3: Running ───
@@ -170,14 +192,19 @@ fun NavGraph() {
 
         // ─── Phase 5: Profile, Settings, Activities, WebView ───
         composable(
-            route = Screen.WebGame.route,
+            route = Screen.WebGame.route + "?index={index}",
             arguments = listOf(
-                navArgument("kind") { type = NavType.StringType }
+                navArgument("kind") { type = NavType.StringType },
+                navArgument("index") { 
+                    type = NavType.IntType
+                    defaultValue = -1 
+                }
             )
         ) { backStackEntry ->
             WebViewScreen(
                 navController = navController,
-                kind = backStackEntry.arguments?.getString("kind") ?: ""
+                kind = backStackEntry.arguments?.getString("kind") ?: "",
+                index = backStackEntry.arguments?.getInt("index") ?: -1
             )
         }
 
@@ -194,7 +221,7 @@ fun NavGraph() {
         }
 
         composable(Screen.AppDebug.route) {
-            com.vitalo.markrun.ui.debug.AppDebugScreen(navController = navController)
+            AppDebugScreen(navController = navController)
         }
     }
 
@@ -213,7 +240,7 @@ fun NavGraph() {
             )
         }
         if (GlobalOverlayManager.showConversionRules) {
-            com.vitalo.markrun.ui.exchange.ConversionRulesDialog(
+            ConversionRulesDialog(
                 coinExchangeRate = GlobalOverlayManager.conversionRulesExchangeRate,
                 onClose = { GlobalOverlayManager.dismissConversionRulesOverlay() }
             )
@@ -226,11 +253,11 @@ fun NavGraph() {
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            androidx.compose.material3.FloatingActionButton(
+            FloatingActionButton(
                 onClick = { navController.navigate(Screen.AppDebug.route) },
                 modifier = Modifier
                     .offset {
-                        androidx.compose.ui.unit.IntOffset(
+                        IntOffset(
                             debugOffsetX.toInt(),
                             debugOffsetY.toInt()
                         )
@@ -243,15 +270,15 @@ fun NavGraph() {
                             debugOffsetY += dragAmount.y
                         }
                     },
-                shape = androidx.compose.foundation.shape.CircleShape,
-                containerColor = androidx.compose.ui.graphics.Color.Red,
-                contentColor = androidx.compose.ui.graphics.Color.White
+                shape = CircleShape,
+                containerColor = Color.Red,
+                contentColor = Color.White
             ) {
-                androidx.compose.foundation.Image(
-                    painter = androidx.compose.ui.res.painterResource(id = com.vitalo.markrun.R.drawable.ic_debug_bug),
-                    contentDescription = "Debug",
+                Image(
+                    painter = painterResource(id = R.drawable.ic_debug_bug),
+                    contentDescription = null,
                     modifier = Modifier.size(25.dp),
-                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(androidx.compose.ui.graphics.Color.White)
+                    colorFilter = ColorFilter.tint(Color.White)
                 )
             }
         }

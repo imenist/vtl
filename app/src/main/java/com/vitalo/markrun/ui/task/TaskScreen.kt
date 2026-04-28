@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -56,8 +57,18 @@ import com.vitalo.markrun.data.remote.model.DailyTaskStatus
 import com.vitalo.markrun.ui.theme.VitaloTheme
 import com.vitalo.markrun.ui.common.CoinBalanceView
 import java.text.NumberFormat
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.vitalo.markrun.ad.AdManager
+import com.vitalo.markrun.ad.Ads
+import android.app.Activity
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // region ──── iOS-exact Design Tokens ────
@@ -164,26 +175,104 @@ private val mockDailyTasks = listOf(
 fun TaskScreen(
     viewModel: TaskViewModel = hiltViewModel(),
     onShowSignIn: () -> Unit = {},
-    onNavigateToWebGame: (String) -> Unit = {}
+    onNavigateToWebGame: (String) -> Unit = {},
+    onNavigateToWebGameWithIndex: (String, Int) -> Unit = { _, _ -> }
 ) {
+    val context = LocalContext.current
     val coinBalance by viewModel.coinBalance.collectAsState()
+    val taskStatus by viewModel.dailyTaskStatus.collectAsState()
+    val dailyTasks = remember(taskStatus) { viewModel.allDailyTasks() }
+    val chests = remember(taskStatus) {
+        (0..3).map { index ->
+            ChestDisplayItem(
+                index = index,
+                timeLabel = viewModel.chestTimeLabel(index),
+                reward = viewModel.chestReward,
+                state = viewModel.chestState(index)
+            )
+        }
+    }
+
+    val notificationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            viewModel.markNotificationClaimed()
+            com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(50)
+        }
+    }
+
+    val motionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            viewModel.markMotionUsageClaimed()
+            com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(50)
+        }
+    }
 
     TaskScreenContent(
         coinBalance = coinBalance.toInt(),
-        chests = mockChests,
-        dailyTasks = mockDailyTasks,
-        taskStatus = mockStatus,
+        chests = chests,
+        dailyTasks = dailyTasks,
+        taskStatus = taskStatus,
         multiRelaxTotalNum = 3,
-        multiRelaxCompletedIndices = listOf(true, false, false),
+        multiRelaxCompletedIndices = taskStatus.multiDailyRelaxationCompletedLinkIndices,
         onChestClaim = { viewModel.claimChest(it) },
         onTaskGo = { kind ->
             when (kind) {
                 DailyTaskKind.SIGN_IN -> onShowSignIn()
-                DailyTaskKind.NEW_USER_SPIN -> onNavigateToWebGame("spin")
+                DailyTaskKind.NEW_USER_SPIN -> com.vitalo.markrun.ui.common.GlobalOverlayManager.showSpinWheelOverlay()
                 DailyTaskKind.CRACK_EGG -> onNavigateToWebGame("smashEgg")
                 DailyTaskKind.LUCKY_SLOT -> onNavigateToWebGame("slotMachine")
+                DailyTaskKind.DAILY_RELAXATION -> onNavigateToWebGame("dailyRelaxation")
+                DailyTaskKind.UPPER_STEP_CONVERSION -> {
+                    val activity = context as? Activity
+                    if (activity != null) {
+                        AdManager.showAd(
+                            activity = activity,
+                            virtualId = Ads.REWARD_TASK_STEP_LIMIT_UP,
+                            onAdClosed = { /* ad closed */ },
+                            onReward = {
+                                viewModel.markUpperStepConversionClaimed()
+                                com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(0)
+                            }
+                        )
+                    }
+                }
+                DailyTaskKind.NOTIFICATION -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val isGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                        if (isGranted) {
+                            viewModel.markNotificationClaimed()
+                            com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(50)
+                        } else {
+                            notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    } else {
+                        viewModel.markNotificationClaimed()
+                        com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(50)
+                    }
+                }
+                DailyTaskKind.MOTION_USAGE -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        val isGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
+                        if (isGranted) {
+                            viewModel.markMotionUsageClaimed()
+                            com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(50)
+                        } else {
+                            motionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                        }
+                    } else {
+                        viewModel.markMotionUsageClaimed()
+                        com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(50)
+                    }
+                }
                 else -> {}
             }
+        },
+        onMultiDailyRelaxationGo = { index ->
+            onNavigateToWebGameWithIndex("multiDailyRelaxation", index)
         },
         onTaskClaim = { viewModel.claimReward(it) }
     )
@@ -205,6 +294,7 @@ fun TaskScreenContent(
     multiRelaxCompletedIndices: List<Boolean> = listOf(false, false, false),
     onChestClaim: (Int) -> Unit = {},
     onTaskGo: (DailyTaskKind) -> Unit = {},
+    onMultiDailyRelaxationGo: (Int) -> Unit = {},
     onTaskClaim: (DailyTaskKind) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -271,7 +361,7 @@ fun TaskScreenContent(
                             totalNum = multiRelaxTotalNum,
                             completedIndices = multiRelaxCompletedIndices,
                             rewardPerRound = task.reward,
-                            onGoIndex = { onTaskGo(task.kind) },
+                            onGoIndex = onMultiDailyRelaxationGo,
                             onClaim = { onTaskClaim(task.kind) }
                         )
                     }
@@ -433,8 +523,11 @@ private fun TaskChestItemView(
     BoxWithConstraints(
         modifier = modifier
             .aspectRatio(68.59f / 91.45f)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(enabled = isClaimable) { onClaim() }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                enabled = isClaimable
+            ) { onClaim() }
     ) {
         val cardW = maxWidth
         val cardH = maxHeight
@@ -442,12 +535,15 @@ private fun TaskChestItemView(
         // Background image
         TaskImage(
             resName = bgResName,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(12.dp)),
             contentScale = ContentScale.FillBounds,
             placeholderContent = {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .clip(RoundedCornerShape(12.dp))
                         .background(
                             when {
                                 isClaimed -> Color(0xFFFFE0B2)
@@ -501,17 +597,39 @@ private fun TaskChestItemView(
 
         // Claimed coin text "+XXX"
         if (isClaimed) {
-            Text(
-                text = "+${chest.reward}",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Black,
-                fontStyle = FontStyle.Italic,
-                color = ChestCoinGrad2,
-                textAlign = TextAlign.Center,
+            Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .offset(y = cardH * 0.51f)
-            )
+            ) {
+                Text(
+                    text = "+${chest.reward}",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = FontStyle.Italic,
+                    style = androidx.compose.ui.text.TextStyle(
+                        drawStyle = androidx.compose.ui.graphics.drawscope.Stroke(
+                            miter = 10f,
+                            width = 4f,
+                            join = androidx.compose.ui.graphics.StrokeJoin.Round
+                        )
+                    ),
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "+${chest.reward}",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = FontStyle.Italic,
+                    style = androidx.compose.ui.text.TextStyle(
+                        brush = Brush.linearGradient(
+                            colors = listOf(ChestCoinGrad1, ChestCoinGrad2, ChestCoinGrad3)
+                        )
+                    ),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
 
         // Bottom button
@@ -771,7 +889,11 @@ private fun RelaxationVariantA(
             modifier = Modifier
                 .width(165.dp)
                 .height(106.dp)
-                .clickable(enabled = !entry1Done) { onGoIndex(0) }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    enabled = !entry1Done
+                ) { onGoIndex(0) }
         )
 
         // Right column
@@ -786,7 +908,11 @@ private fun RelaxationVariantA(
                 modifier = Modifier
                     .width(135.dp)
                     .height(48.dp)
-                    .clickable(enabled = !entry2Done) { onGoIndex(1) }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        enabled = !entry2Done
+                    ) { onGoIndex(1) }
             )
             RelaxationEntry(
                 index = 2,
@@ -798,7 +924,11 @@ private fun RelaxationVariantA(
                 modifier = Modifier
                     .width(135.dp)
                     .height(48.dp)
-                    .clickable(enabled = !entry3Done) { onGoIndex(2) }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        enabled = !entry3Done
+                    ) { onGoIndex(2) }
             )
         }
     }
@@ -827,7 +957,11 @@ private fun RelaxationVariantB(
             modifier = Modifier
                 .width(147.dp)
                 .height(106.dp)
-                .clickable(enabled = !entry1Done) { onGoIndex(0) }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    enabled = !entry1Done
+                ) { onGoIndex(0) }
         )
         RelaxationEntry(
             index = 1,
@@ -839,7 +973,11 @@ private fun RelaxationVariantB(
             modifier = Modifier
                 .width(147.dp)
                 .height(106.dp)
-                .clickable(enabled = !entry2Done) { onGoIndex(1) }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    enabled = !entry2Done
+                ) { onGoIndex(1) }
         )
     }
 }
@@ -860,7 +998,11 @@ private fun RelaxationVariantC(
         modifier = Modifier
             .width(311.dp)
             .height(106.dp)
-            .clickable(enabled = !isDone) { onGo() }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                enabled = !isDone
+            ) { onGo() }
     )
 }
 
@@ -1067,7 +1209,11 @@ private fun TaskActionButton(
             .alpha(btnAlpha)
             .clip(RoundedCornerShape(14.dp))
             .background(bgBrush)
-            .clickable(enabled = !claimed && (canClaim || showGoButton)) { onAction() },
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                enabled = !claimed && (canClaim || showGoButton)
+            ) { onAction() },
         contentAlignment = Alignment.Center
     ) {
         when {

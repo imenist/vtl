@@ -1,0 +1,12 @@
+--- app/src/main/java/com/vitalo/markrun/ui/followalong/FollowAlongScreen.kt
++++ app/src/main/java/com/vitalo/markrun/ui/followalong/FollowAlongScreen.kt
+@@ -104,7 +104,7 @@
+             val localFile = com.vitalo.markrun.common.cache.VideoCacheManager.getLocalFile(context, videoUrl)
+             val uri = if (localFile.exists() && localFile.length() > 0) {
+                 Uri.fromFile(localFile)
+             } else {
+                 Uri.parse(videoUrl)
+             }
+             exoPlayer.setMediaItem(MediaItem.fromUri(uri))
+             exoPlayer.prepare()
+             exoPlayer.playWhenReady = true

@@ -17,7 +17,9 @@ sealed class Screen(val route: String) {
     data object FollowAlong : Screen("follow_along/{trainingCode}/{lessonCode}")
     data object LocationPermission : Screen("location_permission")
     data object RunningResult : Screen("running_result/{recordId}/{fragmentsCount}")
-    data object WorkoutResult : Screen("workout_result")
+    data object WorkoutResult : Screen("workout_result/{duration}/{calorie}/{hasCompleted}") {
+        fun createRoute(duration: Int, calorie: Int, hasCompleted: Boolean) = "workout_result/$duration/$calorie/$hasCompleted"
+    }
     data object Mine : Screen("mine")
     data object Settings : Screen("settings")
     data object RecentActivities : Screen("recent_activities")

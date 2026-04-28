@@ -44,7 +44,9 @@ data class DailyTaskStatus(
     var dailyRelaxationRewardClaimed: Boolean = false,
     var multiDailyRelaxationCompletedLinkIndices: MutableList<Boolean> = mutableListOf(false, false, false),
     var multiDailyRelaxationRewardClaimed: Boolean = false,
-    var upperStepConversionClaimed: Boolean = false
+    var upperStepConversionClaimed: Boolean = false,
+    var notificationClaimed: Boolean = false,
+    var motionUsageClaimed: Boolean = false
 ) {
     val multiDailyRelaxationCompletedCount: Int
         get() = multiDailyRelaxationCompletedLinkIndices.count { it }

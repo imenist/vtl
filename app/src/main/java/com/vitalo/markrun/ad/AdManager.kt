@@ -18,6 +18,8 @@ import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.google.android.gms.ads.appopen.AppOpenAd
+import com.google.android.gms.ads.appopen.AppOpenAd.AppOpenAdLoadCallback
 import com.vitalo.markrun.common.ab.impl.AdConfig
 import com.vitalo.markrun.common.ab.AbConfigDataRepo
 import com.vitalo.markrun.common.ab.AbSidTable
@@ -50,6 +52,7 @@ object AdManager {
 
     private val admobInterstitialAds = mutableMapOf<String, InterstitialAd>()
     private val admobRewardedAds = mutableMapOf<String, RewardedAd>()
+    private val admobAppOpenAds = mutableMapOf<String, AppOpenAd>()
     
     // 是否正在加载中，避免重复请求 (主要针对AdMob)
     private val loadingAds = mutableSetOf<String>()
@@ -93,14 +96,16 @@ object AdManager {
                 val adType = adModuleItem.adType ?: AdType.REWARD_VIDEO_2_0
 
                 if (adSource == AdSource.ADMOB) {
-                    if (isInterstitial(adType)) {
+                    if (isAppOpen(adType)) {
+                        loadAdMobAppOpen(context, adUnitId)
+                    } else if (isInterstitial(adType)) {
                         loadAdMobInterstitial(context, adUnitId)
                     } else {
                         loadAdMobRewarded(context, adUnitId)
                     }
                 } else if (adSource == AdSource.APPLOVIN || adSource == AdSource.APPLOVIN_TWO) {
                     if (context is Activity) {
-                        if (isInterstitial(adType)) {
+                        if (isAppOpen(adType) || isInterstitial(adType)) {
                             loadMaxInterstitial(context, adUnitId)
                         } else {
                             loadMaxRewarded(context, adUnitId)
@@ -129,7 +134,9 @@ object AdManager {
             try {
                 // 使用官方测试ID
                 val adUnitId = if (adSource == AdSource.ADMOB) {
-                    if (isInterstitial(adType)) {
+                    if (isAppOpen(adType)) {
+                        "ca-app-pub-3940256099942544/5575463023" // AdMob App Open Test ID
+                    } else if (isInterstitial(adType)) {
                         "ca-app-pub-3940256099942544/1033173712" // AdMob Interstitial Test ID
                     } else {
                         "ca-app-pub-3940256099942544/5224354917" // AdMob Rewarded Test ID
@@ -140,9 +147,9 @@ object AdManager {
                     Log.w(TAG, "AppLovin 暂无统一测试ID，请使用后台配置的测试设备")
                     // 这里为了防止崩溃，随便塞个占位，或者你需要具体的测试ID可以替换
                     if (isInterstitial(adType)) {
-                        "YOUR_MAX_INTERSTITIAL_TEST_ID" 
+                        "a937c3941707bd3c" 
                     } else {
-                        "YOUR_MAX_REWARDED_TEST_ID"
+                        "a9a6a729098df1bb"
                     }
                 }
 
@@ -150,13 +157,15 @@ object AdManager {
                 val virtualId = 0
 
                 if (adSource == AdSource.ADMOB) {
-                    if (isInterstitial(adType)) {
+                    if (isAppOpen(adType)) {
+                        showAdMobAppOpen(activity, virtualId, adUnitId, onAdClosed)
+                    } else if (isInterstitial(adType)) {
                         showAdMobInterstitial(activity, virtualId, adUnitId, onAdClosed)
                     } else {
                         showAdMobRewarded(activity, virtualId, adUnitId, onAdClosed, onReward)
                     }
                 } else if (adSource == AdSource.APPLOVIN || adSource == AdSource.APPLOVIN_TWO) {
-                    if (isInterstitial(adType)) {
+                    if (isAppOpen(adType) || isInterstitial(adType)) {
                         showMaxInterstitial(activity, virtualId, adUnitId, onAdClosed)
                     } else {
                         showMaxRewarded(activity, virtualId, adUnitId, onAdClosed, onReward)
@@ -205,13 +214,15 @@ object AdManager {
                     val adType = adModuleItem.adType ?: AdType.REWARD_VIDEO_2_0
 
                     if (adSource == AdSource.ADMOB) {
-                        if (isInterstitial(adType)) {
+                        if (isAppOpen(adType)) {
+                            showAdMobAppOpen(activity, virtualId, adUnitId, onAdClosed)
+                        } else if (isInterstitial(adType)) {
                             showAdMobInterstitial(activity, virtualId, adUnitId, onAdClosed)
                         } else {
                             showAdMobRewarded(activity, virtualId, adUnitId, onAdClosed, onReward)
                         }
                     } else if (adSource == AdSource.APPLOVIN || adSource == AdSource.APPLOVIN_TWO) {
-                        if (isInterstitial(adType)) {
+                        if (isAppOpen(adType) || isInterstitial(adType)) {
                             showMaxInterstitial(activity, virtualId, adUnitId, onAdClosed)
                         } else {
                             showMaxRewarded(activity, virtualId, adUnitId, onAdClosed, onReward)
@@ -234,8 +245,11 @@ object AdManager {
     private fun isInterstitial(adType: Int): Boolean {
         return adType == AdType.INTERSTITIAL_VIDEO || 
                adType == AdType.FULL_SCREEN || 
-               adType == AdType.INTERSTITIAL_FULL ||
-               adType == AdType.SPLASH
+               adType == AdType.INTERSTITIAL_FULL
+    }
+
+    private fun isAppOpen(adType: Int): Boolean {
+        return adType == AdType.SPLASH
     }
 
     /* =======================================================
@@ -366,6 +380,76 @@ object AdManager {
         ad.show(activity) { _ ->
             isRewarded = true
         }
+    }
+
+    private fun loadAdMobAppOpen(context: Context, adUnitId: String) {
+        if (admobAppOpenAds[adUnitId] != null || loadingAds.contains(adUnitId)) return
+        loadingAds.add(adUnitId)
+        val adRequest = AdRequest.Builder().build()
+        AppOpenAd.load(
+            context,
+            adUnitId,
+            adRequest,
+            object : AppOpenAdLoadCallback() {
+                override fun onAdLoaded(ad: AppOpenAd) {
+                    admobAppOpenAds[adUnitId] = ad
+                    loadingAds.remove(adUnitId)
+                    Log.d(TAG, "AdMob 开屏广告预加载成功: $adUnitId")
+                }
+                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                    loadingAds.remove(adUnitId)
+                    Log.e(TAG, "AdMob 开屏广告预加载失败: ${loadAdError.message}")
+                }
+            }
+        )
+    }
+
+    private suspend fun showAdMobAppOpen(activity: Activity, virtualId: Int, adUnitId: String, onAdClosed: (() -> Unit)?) {
+        val cachedAd = admobAppOpenAds[adUnitId]
+        if (cachedAd != null) {
+            displayAdMobAppOpen(activity, virtualId, adUnitId, cachedAd, onAdClosed)
+        } else {
+            val loadResult = CompletableDeferred<AppOpenAd?>()
+            val adRequest = AdRequest.Builder().build()
+            AppOpenAd.load(
+                activity,
+                adUnitId,
+                adRequest,
+                object : AppOpenAdLoadCallback() {
+                    override fun onAdLoaded(ad: AppOpenAd) {
+                        loadResult.complete(ad)
+                    }
+                    override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                        Log.e(TAG, "AdMob 开屏广告加载失败: ${loadAdError.message}")
+                        loadResult.complete(null)
+                    }
+                }
+            )
+            val ad = loadResult.await()
+            if (ad != null) {
+                displayAdMobAppOpen(activity, virtualId, adUnitId, ad, onAdClosed)
+            } else {
+                onAdClosed?.invoke()
+            }
+        }
+    }
+
+    private fun displayAdMobAppOpen(activity: Activity, virtualId: Int, adUnitId: String, ad: AppOpenAd, onAdClosed: (() -> Unit)?) {
+        ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+            override fun onAdDismissedFullScreenContent() {
+                admobAppOpenAds.remove(adUnitId)
+                onAdClosed?.invoke()
+            }
+            override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                Log.e(TAG, "AdMob 开屏展示失败: ${adError.message}")
+                admobAppOpenAds.remove(adUnitId)
+                onAdClosed?.invoke()
+            }
+            override fun onAdShowedFullScreenContent() {
+                recordAdShown(virtualId)
+            }
+        }
+        ad.show(activity)
     }
 
     /* =======================================================

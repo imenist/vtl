@@ -53,6 +53,12 @@ fun LocationPermissionScreen(navController: NavController) {
     ) { permissions ->
         val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
         val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        
+        context.getSharedPreferences("vitalo_prefs", android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("hasShownLocationPermission", true)
+            .apply()
+
         if (fineGranted || coarseGranted) {
             navController.navigate(Screen.RunTracker.route) {
                 popUpTo(Screen.LocationPermission.route) { inclusive = true }

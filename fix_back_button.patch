@@ -1,0 +1,47 @@
+--- app/src/main/java/com/vitalo/markrun/ui/lessondetail/LessonDetailScreen.kt
++++ app/src/main/java/com/vitalo/markrun/ui/lessondetail/LessonDetailScreen.kt
+@@ -40,6 +40,8 @@
+ import androidx.hilt.navigation.compose.hiltViewModel
+ import androidx.navigation.NavController
+ import coil.compose.AsyncImage
++import androidx.compose.foundation.Image
++import androidx.compose.ui.res.painterResource
+ import com.vitalo.markrun.data.remote.model.MountAction
+ import com.vitalo.markrun.navigation.Screen
+ import com.vitalo.markrun.ui.common.CommonEmptyView
+@@ -47,6 +49,7 @@
+ import com.vitalo.markrun.ui.theme.DarkBackground
+ import com.vitalo.markrun.ui.theme.GradientGreenEnd
+ import com.vitalo.markrun.ui.theme.GradientGreenStart
++import com.vitalo.markrun.R
+ 
+ @Composable
+ fun LessonDetailScreen(
+@@ -165,12 +168,14 @@
+             modifier = Modifier
+                 .padding(start = 20.dp, top = 8.dp + statusBarHeight)
+                 .size(50.dp)
+-                .clip(RoundedCornerShape(25.dp))
+-                .background(Color.Black.copy(alpha = 0.3f))
+                 .clickable { navController.popBackStack() },
+             contentAlignment = Alignment.Center
+         ) {
+-            Text("←", color = Color.White, fontSize = 24.sp)
++            Image(
++                painter = painterResource(id = R.drawable.ic_back),
++                contentDescription = "Back",
++                modifier = Modifier.fillMaxSize()
++            )
+         }
+ 
+         // START button at bottom
+@@ -190,8 +195,7 @@
+                         }
+                         
+                         viewModel.checkAndDownloadAllMedia(context) { success ->
+-                            if (success && viewModel.isViewActive && viewModel.lesson.value != null) {
+-                                viewModel.isNavigatingToChild = true
++                            if (success) {
+                                 navController.navigate(
+                                     "follow_along/$trainingCode/${lesson?.code ?: ""}"
+                                 )

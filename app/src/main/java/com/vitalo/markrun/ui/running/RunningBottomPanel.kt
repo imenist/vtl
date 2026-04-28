@@ -114,21 +114,23 @@ fun RunningBottomPanel(
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
+                                horizontalArrangement = Arrangement.Center
                             ) {
-                                Box(modifier = Modifier.width(81.dp)) {
+                                Box(modifier = Modifier.width(81.dp), contentAlignment = Alignment.Center) {
                                     RunningMetricView(
                                         value = String.format("%.2f", distance / 1000),
                                         unit = "KM"
                                     )
                                 }
-                                Box(modifier = Modifier.width(81.dp)) {
+                                Spacer(modifier = Modifier.width(21.5.dp))
+                                Box(modifier = Modifier.width(81.dp), contentAlignment = Alignment.Center) {
                                     RunningMetricView(
                                         value = String.format("%.2f", kcal),
                                         unit = "KCAL"
                                     )
                                 }
-                                Box(modifier = Modifier.width(81.dp)) {
+                                Spacer(modifier = Modifier.width(21.5.dp))
+                                Box(modifier = Modifier.width(81.dp), contentAlignment = Alignment.Center) {
                                     RunningMetricView(
                                         value = formatPace(pace),
                                         unit = "PACE"

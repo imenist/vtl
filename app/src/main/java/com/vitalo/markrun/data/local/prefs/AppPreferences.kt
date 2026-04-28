@@ -27,6 +27,7 @@ class AppPreferences @Inject constructor(
         const val KEY_AB_TEST_RESULT = "abTestResult"
         const val KEY_SELECTED_DISTANCE_UNIT = "selectedDistanceUnit"
         const val KEY_FRAGMENT_PROGRESS = "fragmentProgress"
+        const val KEY_HAS_SHOWN_LOCATION_PERMISSION = "hasShownLocationPermission"
     }
 
     fun setBoolean(key: String, value: Boolean) = prefs.edit().putBoolean(key, value).apply()
@@ -63,6 +64,11 @@ class AppPreferences @Inject constructor(
         get() = getBoolean(KEY_HAS_LAUNCHED_BEFORE)
 
     fun setHasLaunchedBefore(value: Boolean) = setBoolean(KEY_HAS_LAUNCHED_BEFORE, value)
+
+    val hasShownLocationPermission: Boolean
+        get() = getBoolean(KEY_HAS_SHOWN_LOCATION_PERMISSION)
+
+    fun setHasShownLocationPermission(value: Boolean) = setBoolean(KEY_HAS_SHOWN_LOCATION_PERMISSION, value)
 
     fun getDistinctId(): String {
         var id = getString(KEY_DISTINCT_ID)

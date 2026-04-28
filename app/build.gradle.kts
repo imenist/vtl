@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -17,7 +20,14 @@ android {
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val mapsApiKey: String = project.findProperty("MAPS_API_KEY") as? String ?: ""
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localProperties.load(FileInputStream(localPropertiesFile))
+        }
+        val mapsApiKey: String = (localProperties.getProperty("MAPS_API_KEY") 
+            ?: project.findProperty("MAPS_API_KEY") as? String ?: "")
+            
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
@@ -152,15 +162,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-ads:23.0.0")
     implementation("com.google.android.gms:play-services-ads-identifier:18.0.1")
 
-    // AdMob 的中介适配器 (Mediation Adapters)
-    implementation("com.google.ads.mediation:facebook:6.16.0.0")
-    implementation("com.google.ads.mediation:applovin:12.4.3.0")
-    implementation("com.google.ads.mediation:mintegral:16.9.71.0")
-    
-    // AppLovin MAX
+    // AppLovin MAX（与 AdMob 独立并行，各自直接展示广告，不走 Mediation）
     implementation("com.applovin:applovin-sdk:12.6.1")
-    // AppLovin MAX AdMob Adapter
-    implementation("com.applovin.mediation:google-adapter:23.0.0.0")
     // AppLovin MAX other adapters based on mediation networks
     implementation("com.applovin.mediation:fyber-adapter:8.4.0.0") // DT Exchange
     implementation("com.applovin.mediation:ironsource-adapter:8.11.0.0.0") // IronSource

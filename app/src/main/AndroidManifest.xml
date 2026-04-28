@@ -23,6 +23,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Vitalo"
+        android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
         <activity
@@ -52,7 +53,7 @@
         <!-- AppLovin SDK Key -->
         <meta-data
             android:name="applovin.sdk.key"
-            android:value="YOUR_APPLOVIN_SDK_KEY"/>
+            android:value="yn9S0HJo7vvQrs3Qarls2sMw5AeDOh1B_dxs8lqd1v8ruHG0ZXSxpuS6LottTcJLaddEcwlzwGM3kFMx3X0ZVg"/>
 
     </application>
 

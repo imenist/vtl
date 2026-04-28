@@ -27,7 +27,7 @@ class TaskViewModel @Inject constructor(
 
     private val chestHours = listOf(8, 12, 16, 20)
 
-    private val chestReward = 50
+    val chestReward = 50
     private val chestAllReward = 100
     private val runningReward = 200
     private val trainingReward = 150
@@ -48,19 +48,41 @@ class TaskViewModel @Inject constructor(
         val status = _dailyTaskStatus.value
         val tasks = mutableListOf<DailyTaskInfo>()
 
-        tasks.add(DailyTaskInfo(DailyTaskKind.TRAINING, canClaim = status.trainingMinutes >= 30 && !status.trainingRewardClaimed, claimed = status.trainingRewardClaimed, reward = trainingReward))
-        tasks.add(DailyTaskInfo(DailyTaskKind.RUNNING, canClaim = status.runningKcal >= 200 && !status.runningRewardClaimed, claimed = status.runningRewardClaimed, reward = runningReward))
+        tasks.add(DailyTaskInfo(DailyTaskKind.NOTIFICATION, canClaim = false, claimed = status.notificationClaimed, reward = 50))
+        tasks.add(DailyTaskInfo(DailyTaskKind.MOTION_USAGE, canClaim = false, claimed = status.motionUsageClaimed, reward = 50))
         tasks.add(DailyTaskInfo(DailyTaskKind.SIGN_IN, canClaim = status.signInToday && !status.signInClaimed, claimed = status.signInClaimed, reward = signInReward))
+        tasks.add(DailyTaskInfo(DailyTaskKind.CHEST_ALL, canClaim = status.chestClaimed.all { it } && !status.chestAllClaimed, claimed = status.chestAllClaimed, reward = chestAllReward))
         tasks.add(DailyTaskInfo(DailyTaskKind.NEW_USER_SPIN, canClaim = status.newUserSpinCount >= 10 && !status.newUserSpinClaimed, claimed = status.newUserSpinClaimed, reward = spinReward))
         tasks.add(DailyTaskInfo(DailyTaskKind.CRACK_EGG, canClaim = status.crackEggCount >= 10 && !status.crackEggClaimed, claimed = status.crackEggClaimed, reward = crackEggReward))
         tasks.add(DailyTaskInfo(DailyTaskKind.LUCKY_SLOT, canClaim = status.luckySlotCount >= 10 && !status.luckySlotClaimed, claimed = status.luckySlotClaimed, reward = luckySlotReward))
-        tasks.add(DailyTaskInfo(DailyTaskKind.NOTIFICATION, canClaim = false, claimed = false, reward = 50))
-        tasks.add(DailyTaskInfo(DailyTaskKind.MOTION_USAGE, canClaim = false, claimed = false, reward = 50))
-        tasks.add(DailyTaskInfo(DailyTaskKind.DAILY_RELAXATION, canClaim = status.dailyRelaxationCompleted && !status.dailyRelaxationRewardClaimed, claimed = status.dailyRelaxationRewardClaimed, reward = 100))
-        tasks.add(DailyTaskInfo(DailyTaskKind.MULTI_DAILY_RELAXATION, canClaim = status.multiDailyRelaxationCompletedCount >= 3 && !status.multiDailyRelaxationRewardClaimed, claimed = status.multiDailyRelaxationRewardClaimed, reward = 120))
         tasks.add(DailyTaskInfo(DailyTaskKind.UPPER_STEP_CONVERSION, canClaim = false, claimed = status.upperStepConversionClaimed, reward = 200))
+        tasks.add(DailyTaskInfo(DailyTaskKind.MULTI_DAILY_RELAXATION, canClaim = status.multiDailyRelaxationCompletedCount >= 3 && !status.multiDailyRelaxationRewardClaimed, claimed = status.multiDailyRelaxationRewardClaimed, reward = 120))
+        tasks.add(DailyTaskInfo(DailyTaskKind.DAILY_RELAXATION, canClaim = status.dailyRelaxationCompleted && !status.dailyRelaxationRewardClaimed, claimed = status.dailyRelaxationRewardClaimed, reward = 100))
+        tasks.add(DailyTaskInfo(DailyTaskKind.RUNNING, canClaim = status.runningKcal >= 200 && !status.runningRewardClaimed, claimed = status.runningRewardClaimed, reward = runningReward))
+        tasks.add(DailyTaskInfo(DailyTaskKind.TRAINING, canClaim = status.trainingMinutes >= 30 && !status.trainingRewardClaimed, claimed = status.trainingRewardClaimed, reward = trainingReward))
 
-        return tasks
+        val targetKinds = listOf(
+            DailyTaskKind.NOTIFICATION,
+            DailyTaskKind.MOTION_USAGE,
+            DailyTaskKind.SIGN_IN,
+            DailyTaskKind.CHEST_ALL,
+            DailyTaskKind.NEW_USER_SPIN,
+            DailyTaskKind.CRACK_EGG,
+            DailyTaskKind.LUCKY_SLOT,
+            DailyTaskKind.UPPER_STEP_CONVERSION,
+            DailyTaskKind.MULTI_DAILY_RELAXATION,
+            DailyTaskKind.DAILY_RELAXATION,
+            DailyTaskKind.RUNNING,
+            DailyTaskKind.TRAINING
+        )
+
+        return tasks.sortedWith { lhs, rhs ->
+            if (lhs.claimed == rhs.claimed) {
+                targetKinds.indexOf(lhs.kind).compareTo(targetKinds.indexOf(rhs.kind))
+            } else {
+                if (!lhs.claimed && rhs.claimed) -1 else 1
+            }
+        }
     }
 
     fun claimReward(kind: DailyTaskKind): Int {
@@ -141,6 +163,30 @@ class TaskViewModel @Inject constructor(
         return ChestState.CLAIMABLE
     }
 
+    fun markUpperStepConversionClaimed() {
+        val status = loadDailyTaskStatus()
+        status.upperStepConversionClaimed = true
+        saveDailyTaskStatus(status)
+    }
+
+    fun markNotificationClaimed() {
+        val status = loadDailyTaskStatus()
+        if (!status.notificationClaimed) {
+            status.notificationClaimed = true
+            saveDailyTaskStatus(status)
+            addLocalCoin(50)
+        }
+    }
+
+    fun markMotionUsageClaimed() {
+        val status = loadDailyTaskStatus()
+        if (!status.motionUsageClaimed) {
+            status.motionUsageClaimed = true
+            saveDailyTaskStatus(status)
+            addLocalCoin(50)
+        }
+    }
+
     fun claimChest(index: Int): Int {
         val status = loadDailyTaskStatus()
         if (index < 0 || index > 3) return 0
@@ -192,13 +238,6 @@ class TaskViewModel @Inject constructor(
         DailyTaskKind.RUNNING -> "img_daily_task_running"
         DailyTaskKind.TRAINING -> "img_daily_task_workout"
         else -> ""
-    }
-
-    fun canShowGoButton(task: DailyTaskInfo): Boolean {
-        return !task.canClaim && !task.claimed && task.kind in listOf(
-            DailyTaskKind.SIGN_IN, DailyTaskKind.NEW_USER_SPIN,
-            DailyTaskKind.CRACK_EGG, DailyTaskKind.LUCKY_SLOT
-        )
     }
 
     private fun todayKey(): String {

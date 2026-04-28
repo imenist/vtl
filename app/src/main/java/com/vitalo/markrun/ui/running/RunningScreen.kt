@@ -36,7 +36,7 @@ fun RunningScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             RunningTitleBar(
                 title = "Start Tracking",
                 onBack = {

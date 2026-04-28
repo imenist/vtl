@@ -1,8 +1,10 @@
 package com.vitalo.markrun.ui.running
 
+import android.app.Activity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -27,9 +30,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.android.gms.maps.model.LatLng
 import com.vitalo.markrun.R
+import com.vitalo.markrun.ad.AdManager
+import com.vitalo.markrun.ad.Ads
 import com.vitalo.markrun.data.local.db.entity.RunningRecord
 import com.vitalo.markrun.navigation.Screen
+import com.vitalo.markrun.ui.common.GlobalOverlayManager
 import com.vitalo.markrun.ui.theme.DarkBackground
+import kotlinx.coroutines.delay
+import com.vitalo.markrun.ui.common.TrainingPackageDialog
 
 @Composable
 fun RunningResultScreen(
@@ -38,13 +46,17 @@ fun RunningResultScreen(
     fragmentsCount: Int,
     viewModel: RunningResultViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val record by viewModel.record.collectAsState()
     val routePoints by viewModel.routePoints.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showTrainingPackageDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(recordId) {
         viewModel.loadRecord(recordId)
+        delay(500)
+        showTrainingPackageDialog = true
     }
 
     val workout = record ?: return
@@ -63,6 +75,7 @@ fun RunningResultScreen(
                     )
                 )
                 .blur(if (showDeleteDialog) 5.dp else 0.dp)
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
         ) {
             // Top bar
@@ -74,7 +87,7 @@ fun RunningResultScreen(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_close),
-                    contentDescription = "Close",
+                    contentDescription = null,
                     modifier = Modifier
                         .size(50.dp)
                         .clickable {
@@ -92,24 +105,52 @@ fun RunningResultScreen(
                 )
             }
 
-            // Medal section
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "GOOD!!",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontStyle = FontStyle.Italic
-                )
-
-                Image(
-                    painter = painterResource(id = R.drawable.img_running_result_medal),
-                    contentDescription = null,
-                    modifier = Modifier.size(169.dp),
-                    contentScale = ContentScale.Fit
-                )
+            // Reward section
+            val totalCoins = workout.coins + (workout.adCoins ?: 0)
+            if (fragmentsCount <= 0 && totalCoins <= 0) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().offset(y = (-15).dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "你真棒！",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontStyle = FontStyle.Italic,
+                        color = Color.Black
+                    )
+                    Image(
+                        painter = painterResource(id = R.drawable.img_running_result_medal),
+                        contentDescription = null,
+                        modifier = Modifier.size(169.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().offset(y = (-15).dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "你真棒！",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontStyle = FontStyle.Italic,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(28.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(35.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (fragmentsCount > 0) {
+                            RunningFragmentRewardView(fragmentNum = fragmentsCount)
+                        }
+                        if (totalCoins > 0) {
+                            RunningCoinRewardView(coinNum = totalCoins)
+                        }
+                    }
+                }
             }
 
             // Running data card
@@ -184,7 +225,7 @@ fun RunningResultScreen(
             }
 
             // Map section
-            if (mapPoints.size >= 2) {
+            if (mapPoints.isNotEmpty()) {
                 RunningMapView(
                     locations = mapPoints,
                     modifier = Modifier
@@ -200,30 +241,77 @@ fun RunningResultScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Close button
-            Button(
-                onClick = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
+            // Get or Ad Button
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 38.dp)
                     .height(64.dp)
-                    .padding(horizontal = 38.dp),
-                shape = RoundedCornerShape(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = DarkBackground)
+                    .clip(RoundedCornerShape(50.dp))
+                    .background(DarkBackground)
+                    .clickable {
+                        val activity = context as? Activity
+                        if (activity != null) {
+                            AdManager.showAd(
+                                activity = activity,
+                                virtualId = Ads.REWARD_RUN_END,
+                                onAdClosed = {
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                },
+                                onReward = {
+                                    // Optionally give reward here if tracking is needed
+                                }
+                            )
+                        } else {
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    },
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "GET",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Black,
-                    fontStyle = FontStyle.Italic,
-                    color = Color.White
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_exchange_ad_play),
+                        contentDescription = null,
+                        modifier = Modifier.size(17.dp, 14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "继续收获",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        fontStyle = FontStyle.Italic,
+                        color = Color.White
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        if (showTrainingPackageDialog) {
+            TrainingPackageDialog(
+                coinNum = 100,
+                onTapClaim = { 
+                    val activity = context as? Activity
+                    if (activity != null) {
+                        AdManager.showAd(
+                            activity = activity,
+                            virtualId = Ads.REWARD_RUN_END,
+                            onAdClosed = { showTrainingPackageDialog = false },
+                            onReward = {
+                                GlobalOverlayManager.showCoinArrivedOverlay(100)
+                            }
+                        )
+                    } else {
+                        showTrainingPackageDialog = false
+                    }
+                },
+                onTapClose = { showTrainingPackageDialog = false }
+            )
         }
 
         if (showDeleteDialog) {
@@ -237,6 +325,46 @@ fun RunningResultScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RunningFragmentRewardView(fragmentNum: Int) {
+    Box(contentAlignment = Alignment.TopCenter) {
+        Image(
+            painter = painterResource(id = R.drawable.img_lesson_fragment_n_coin), // Replace with actual fragment image if available
+            contentDescription = null,
+            modifier = Modifier.size(115.dp),
+            contentScale = ContentScale.Crop
+        )
+        Text(
+            text = "x $fragmentNum",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            fontStyle = FontStyle.Italic,
+            color = Color.White,
+            modifier = Modifier.offset(x = 35.dp, y = 5.dp)
+        )
+    }
+}
+
+@Composable
+private fun RunningCoinRewardView(coinNum: Int) {
+    Box(contentAlignment = Alignment.TopCenter) {
+        Image(
+            painter = painterResource(id = R.drawable.img_workout_result_coin),
+            contentDescription = null,
+            modifier = Modifier.size(115.dp),
+            contentScale = ContentScale.Crop
+        )
+        Text(
+            text = "x $coinNum",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            fontStyle = FontStyle.Italic,
+            color = Color.White,
+            modifier = Modifier.offset(x = 35.dp, y = 5.dp)
+        )
     }
 }
 
