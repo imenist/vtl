@@ -236,16 +236,16 @@ class VitaloBridge(
 
     private fun sendToJsWhenShow() {
         val timestamp = System.currentTimeMillis().toString()
-        actionToJs("get_server_time", timestamp)
-        actionToJs("get_user_cache_coins", getCoinBalanceString())
-        actionToJs("get_today_rewarded_ad_watched_count", buildAdWatchedCountJson(), false)
-        actionToJs("get_app_installed_time", getAppInstalledTimeSeconds())
+        actionToJs("GET_SERVER_TIME", timestamp)
+        actionToJs("GET_USER_CACHE_COINS", getCoinBalanceString())
+        actionToJs("GET_TODAY_REWARDED_AD_WATCHED_COUNT", buildAdWatchedCountJson(), false)
+        actionToJs("GET_APP_INSTALLED_TIME", getAppInstalledTimeSeconds())
         // 主动下发 AB 配置（对标 iOS sendAbConfigIfAvailableOnAppear）
         val abConfig = makeAbConfigJSONString()
-        actionToJs("get_ab_config", abConfig ?: "{}", false)
+        actionToJs("GET_AB_CONFIG", abConfig ?: "{}", false)
         // 主动推送备份数据（对标 iOS sendBackupCacheIfAvailable）
         val cached = appPreferences?.getString(KEY_H5_BACKUP_DATA) ?: "{}"
-        actionToJs("back_request", cached, false)
+        actionToJs("BACK_REQUEST", cached, false)
     }
 
     @JavascriptInterface
