@@ -162,7 +162,7 @@ object AbConfigDataRepo : JsonCacheDataRepo<AbConfigResponse>(VitaloApp.getInsta
                 } else {
                     AbtestCenterService.Builder.Entrance.MAIN_PACKAGE
                 })
-            .cdays(2)
+            .cdays(AppStateManager.getAppInstallDay())
             .isupgrade(if (AppStateManager.isUpgradeUser()) 1 else 2)
             .aid(Machine.getAndroidId(context))
             .channel(AppConfig.statChannelId)

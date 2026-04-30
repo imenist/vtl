@@ -1,11 +1,13 @@
 package com.vitalo.markrun.ui.task
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.vitalo.markrun.data.local.prefs.AppPreferences
 import com.vitalo.markrun.data.remote.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import com.vitalo.markrun.service.CoinManager
@@ -38,6 +40,12 @@ class TaskViewModel @Inject constructor(
 
     init {
         loadAndPublishDailyTaskStatus()
+        
+        viewModelScope.launch {
+            com.vitalo.markrun.ui.web.H5GameProgressNotifier.progressFlow.collect {
+                loadAndPublishDailyTaskStatus()
+            }
+        }
     }
 
     fun loadAndPublishDailyTaskStatus() {
