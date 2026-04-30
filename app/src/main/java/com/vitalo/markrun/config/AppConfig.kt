@@ -36,11 +36,11 @@ object AppConfig : IAppConfig {
 
     // ─── ABTest ───
     override val abTestBaseUrl: String get() = current.abTestBaseUrl
-    override val abTestCid: String get() = current.abTestCid
+    override val abTestCid: Int get() = current.abTestCid
+    override val abTestCid2: Int get() = current.abTestCid2
     override val abTestProductKey: String get() = current.abTestProductKey
-    override val abTestAccessKey: String get() = current.abTestAccessKey
     override val abTestSecretKey: String get() = current.abTestSecretKey
-    override val abTestEntrance: Int get() = current.abTestEntrance
+    override val abTestRequestPkgName: String get() = current.abTestRequestPkgName
 
     // ─── NewStoreLite (广告) ───
     override val adBaseUrl: String get() = current.adBaseUrl
@@ -48,16 +48,15 @@ object AppConfig : IAppConfig {
     override val adApiKey: String get() = current.adApiKey
     override val adSecretKey: String get() = current.adSecretKey
     override val adDesKey: String get() = current.adDesKey
-
     override val illusBaseUrl: String get() = current.illusBaseUrl
     override val illusApiKey: String get() = current.illusApiKey
     override val illusApiSecret: String get() = current.illusApiSecret
+
     override val statBaseUrl: String get() = current.statBaseUrl
     override val statProductId: Int get() = current.statProductId
     override val statChannelId: Int get() = current.statChannelId
     override val functionId19: Int get() = current.functionId19
     override val functionId45: Int get() = current.functionId45
-    override val functionId59: Int get() = current.functionId59
     override val functionId104: Int get() = current.functionId104
     override val functionId105: Int get() = current.functionId105
     override val elephantBaseUrl: String get() = current.elephantBaseUrl

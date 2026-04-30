@@ -62,6 +62,9 @@ import java.util.Locale
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import android.app.Activity
+import com.vitalo.markrun.ad.AdManager
+import com.vitalo.markrun.ad.Ads
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // region ──── Stateful Wrapper ────
@@ -88,7 +91,10 @@ fun ExchangeScreen(
         cards = MockDataProvider.cards,
         fragmentProgress = MockDataProvider.fragmentProgress,
         onFaqClick = { com.vitalo.markrun.ui.common.GlobalOverlayManager.showConversionRulesOverlay(1000.0) },
-        onRecordClick = { navController.navigate(Screen.WithdrawRecord.route) }
+        onRecordClick = { navController.navigate(Screen.WithdrawRecord.route) },
+        onWatchAd = { reward ->
+            viewModel.earnAdReward(reward)
+        }
     )
 }
 
@@ -114,6 +120,7 @@ fun ExchangeScreenContent(
     @Suppress("UNUSED_PARAMETER") fragmentProgress: Map<Int, Int>,
     onFaqClick: () -> Unit = {},
     onRecordClick: () -> Unit = {},
+    onWatchAd: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -167,6 +174,9 @@ fun ExchangeScreenContent(
                     coinExchangeRate = coinExchangeRate,
                     adReward = adReward,
                     screenWidth = screenWidthDp,
+                    onWatchAdClick = {
+                        onWatchAd(adReward)
+                    },
                     modifier = Modifier.padding(top = 22.dp)
                 )
             } else {
@@ -303,8 +313,11 @@ private fun MyWalletWithAdView(
     coinExchangeRate: Double,
     adReward: Int,
     screenWidth: Dp,
+    onWatchAdClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val activity = context as? Activity
     @Suppress("UNUSED_VARIABLE") val cardWidth = screenWidth - 40.dp
     val hasRate = coinExchangeRate > 0
     val cardHeight = if (hasRate) 176.dp else 198.dp
@@ -437,7 +450,17 @@ private fun MyWalletWithAdView(
                     .size(width = 192.dp, height = 47.dp)
                     .clip(RoundedCornerShape(23.5.dp))
                     .background(Color.Black)
-                    .clickable { /* TODO: Watch ad */ },
+                    .clickable {
+                        activity?.let { act ->
+                            AdManager.showAd(
+                                activity = act,
+                                virtualId = Ads.REWARD_WITHDRAW_PAGE,
+                                onComplete = {
+                                    onWatchAdClick()
+                                }
+                            )
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Row(

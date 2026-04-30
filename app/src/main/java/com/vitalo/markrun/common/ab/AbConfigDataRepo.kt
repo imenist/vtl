@@ -18,7 +18,9 @@ import com.vitalo.markrun.common.statistic.StatSdkManger
 import com.vitalo.markrun.common.statistic.bean.StatConst
 import com.vitalo.markrun.config.AppConfig
 import com.vitalo.markrun.util.LogUtils
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.lang.reflect.Type
+import kotlin.toString
 
 /**
  * Ab业务请求管理
@@ -33,8 +35,23 @@ object AbConfigDataRepo : JsonCacheDataRepo<AbConfigResponse>(VitaloApp.getInsta
     private var rawJsonCache: String? = null
 
     init {
-        // TODO: 在这里添加你在 AbSidTable 中定义的 AB 实验对象
+        // 在这里添加你在 AbSidTable 中定义的 AB 实验对象
+        contracts.add(AbSidTable.KCAL_LIMIT)
+        contracts.add(AbSidTable.NEW_USER_SPIN)
+        contracts.add(AbSidTable.SIGN_REWARD)
+        contracts.add(AbSidTable.HAMMER)
+        contracts.add(AbSidTable.SLOT_MACHINE)
+        contracts.add(AbSidTable.FLOP_COIN)
+        contracts.add(AbSidTable.TASK_REWARD)
+        contracts.add(AbSidTable.MINI_GAME_SWITCH)
+        contracts.add(AbSidTable.DAILY_GUIDE)
         contracts.add(AbSidTable.AD)
+        contracts.add(AbSidTable.AD_POLICY)
+        contracts.add(AbSidTable.WITHDRAW_ENABLE)
+        contracts.add(AbSidTable.WITHDRAW_GRADE)
+        contracts.add(AbSidTable.H5_TASK_AD)
+        contracts.add(AbSidTable.APP_UI_SWITCH)
+        
         contracts.add(AbSidTable.BONUS)
         contracts.add(AbSidTable.WITHDRAW)
     }
@@ -56,6 +73,12 @@ object AbConfigDataRepo : JsonCacheDataRepo<AbConfigResponse>(VitaloApp.getInsta
         return "ab_request_data"
     }
 
+    private val okHttpClient by lazy { 
+        okhttp3.OkHttpClient.Builder()
+            .addInterceptor(com.vitalo.markrun.data.remote.interceptor.ABTestInterceptor())
+            .build() 
+    }
+
     override fun fetchRemoteData(callback: (remoteData: AbConfigResponse?, success: Boolean) -> Unit) {
         val abTestRequest = AbConfigDataRepo.buildAbRequestParams(context)
         val startTime = SystemClock.elapsedRealtime()
@@ -74,10 +97,12 @@ object AbConfigDataRepo : JsonCacheDataRepo<AbConfigResponse>(VitaloApp.getInsta
             override fun onResponse(json: String?) {
                 val costTimeFloat = (SystemClock.elapsedRealtime() - startTime) / 1000f
                 val formattedCostTime = String.format(java.util.Locale.US, "%.1f", costTimeFloat)
-                logLongJson(json)
+                AbConfigDataRepo.logLongJson(json)
                 Log.d(logTag, "拉取ab完成")
-                rawJsonCache = json
-                val response = AbResultParser.extract(json, contracts)
+                AbConfigDataRepo.rawJsonCache = json
+                val response = AbResultParser.extract(json,
+                    AbConfigDataRepo.contracts
+                )
                 if (response == null) {
                     Log.d(logTag, "解析json失败, 请检查配置bean")
                     StatSdkManger.upload104(
@@ -125,8 +150,8 @@ object AbConfigDataRepo : JsonCacheDataRepo<AbConfigResponse>(VitaloApp.getInsta
             .accessKey(AppConfig.abTestSecretKey)
             .productKey(AppConfig.abTestProductKey)
             .sid(getSidArray())
-            .cid(AppConfig.abTestCid.toIntOrNull() ?: 0)
-            .cid2(0)
+            .cid(AppConfig.abTestCid)
+            .cid2(AppConfig.abTestCid2)
             .cversion(AppConfig.versionCode) // version code
             .local(java.util.Locale.getDefault().country)
             .utm_source(BuySdkManager.getBuyChannel())
@@ -137,7 +162,7 @@ object AbConfigDataRepo : JsonCacheDataRepo<AbConfigResponse>(VitaloApp.getInsta
                 } else {
                     AbtestCenterService.Builder.Entrance.MAIN_PACKAGE
                 })
-            .cdays(AppStateManager.getAppInstallDay())
+            .cdays(2)
             .isupgrade(if (AppStateManager.isUpgradeUser()) 1 else 2)
             .aid(Machine.getAndroidId(context))
             .channel(AppConfig.statChannelId)

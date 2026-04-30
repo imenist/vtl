@@ -3,7 +3,7 @@ package com.vitalo.markrun.config
 open class ProductConfig : IAppConfig {
 
     override val packageName: String
-        get() = "com.vitalo.markrun"
+        get() = "com.markrun.app"
 
     override val versionCode: Int
         get() = 1
@@ -44,16 +44,16 @@ open class ProductConfig : IAppConfig {
     // ─── ABTest ───
     override val abTestBaseUrl: String
         get() = "https://control.mark-run.com"
-    override val abTestCid: String
-        get() = "1125"
+    override val abTestCid: Int
+        get() = 1125
+    override val abTestCid2: Int
+        get() = statProductId
     override val abTestProductKey: String
         get() = "SC2GXN9BBG33RJP8Q7JFAA50"
-    override val abTestAccessKey: String
-        get() = "MFK71I80F1R89RCLJINUQN1BCYUQ"
     override val abTestSecretKey: String
-        get() = "H7SDYH9X"
-    override val abTestEntrance: Int
-        get() = 999
+        get() = "MFK71I80F1R89RCLJINUQN1BCYUQ"
+    override val abTestRequestPkgName: String
+        get() = "com.markrun.app"
 
     // ─── NewStoreLite (广告) - 正式服 ───
     override val adBaseUrl: String
@@ -66,18 +66,28 @@ open class ProductConfig : IAppConfig {
         get() = "GVhcpQU6VXvammuVLL9oDsfQlaGGtvmf"
     override val adDesKey: String
         get() = "mG5kEDcEYj0"
+    override val illusBaseUrl: String
+        get() = ""
+    override val illusApiKey: String
+        get() = ""
+    override val illusApiSecret: String
+        get() = ""
 
-    override val illusBaseUrl: String get() = ""
-    override val illusApiKey: String get() = ""
-    override val illusApiSecret: String get() = ""
-    override val statBaseUrl: String get() = ""
-    override val statProductId: Int get() = 0
-    override val statChannelId: Int get() = 0
-    override val functionId19: Int get() = 0
-    override val functionId45: Int get() = 0
-    override val functionId59: Int get() = 0
-    override val functionId104: Int get() = 0
-    override val functionId105: Int get() = 0
+
+    override val statBaseUrl: String
+        get() = ""
+    override val statProductId: Int
+        get() = 5351
+    override val statChannelId: Int
+        get() = 200
+    override val functionId19: Int
+        get() = 5351
+    override val functionId45: Int
+        get() = 3735
+    override val functionId104: Int
+        get() = 3734
+    override val functionId105: Int
+        get() = 5351
     override val elephantBaseUrl: String get() = ""
     override val elephantProdId: Int get() = 0
     override val elephantProdKey: String get() = ""

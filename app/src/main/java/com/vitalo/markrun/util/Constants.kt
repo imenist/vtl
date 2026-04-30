@@ -24,11 +24,9 @@ object Constants {
 
     // ABTest
     val ABTEST_BASE_URL: String get() = AppConfig.abTestBaseUrl
-    val ABTEST_CID: String get() = AppConfig.abTestCid
+    val ABTEST_CID: Int get() = AppConfig.abTestCid
     val ABTEST_PRODUCT_KEY: String get() = AppConfig.abTestProductKey
-    val ABTEST_ACCESS_KEY: String get() = AppConfig.abTestAccessKey
     val ABTEST_SECRET_KEY: String get() = AppConfig.abTestSecretKey
-    val ABTEST_ENTRANCE: Int get() = AppConfig.abTestEntrance
 
     // NewStoreLite (广告)
     val AD_BASE_URL: String get() = AppConfig.adBaseUrl

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.vitalo.markrun.data.remote.model.*
 import com.vitalo.markrun.data.repository.GameRepository
 import com.vitalo.markrun.service.CoinManager
+import com.vitalo.markrun.data.local.prefs.AppPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ExchangeViewModel @Inject constructor(
+    private val appPreferences: AppPreferences,
     private val coinManager: CoinManager,
     private val gameRepository: GameRepository
 ) : ViewModel() {
@@ -82,5 +84,11 @@ class ExchangeViewModel @Inject constructor(
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    fun earnAdReward(rewardAmount: Int) {
+        val current = appPreferences.getInt("local_coin_balance")
+        appPreferences.setInt("local_coin_balance", current + rewardAmount)
+        // coinManager.refreshCoins() // optionally refresh
     }
 }

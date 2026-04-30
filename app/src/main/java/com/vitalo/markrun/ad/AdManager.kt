@@ -127,77 +127,75 @@ object AdManager {
         activity: Activity,
         adSource: Int,
         adType: Int,
-        onAdClosed: (() -> Unit)? = null,
-        onReward: (() -> Unit)? = null
+        onComplete: ((rewarded: Boolean) -> Unit)? = null
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
+                com.vitalo.markrun.ui.common.GlobalOverlayManager.showLoading()
                 // 使用官方测试ID
                 val adUnitId = if (adSource == AdSource.ADMOB) {
                     if (isAppOpen(adType)) {
-                        "ca-app-pub-3940256099942544/5575463023" // AdMob App Open Test ID
+                        "ca-app-pub-3940256099942544/5575463023"
                     } else if (isInterstitial(adType)) {
-                        "ca-app-pub-3940256099942544/1033173712" // AdMob Interstitial Test ID
+                        "ca-app-pub-3940256099942544/1033173712"
                     } else {
-                        "ca-app-pub-3940256099942544/5224354917" // AdMob Rewarded Test ID
+                        "ca-app-pub-3940256099942544/5224354917"
                     }
                 } else {
-                    // AppLovin 的测试通过后台配置设备或统一的Test ID处理，这里直接写入您实际可能用来测试的虚拟ID或保留空白
-                    // Max 的测试模式一般需要在SDK初始化或后台设置，如果没有特殊的测试ID，就用个默认或者提示
                     Log.w(TAG, "AppLovin 暂无统一测试ID，请使用后台配置的测试设备")
-                    // 这里为了防止崩溃，随便塞个占位，或者你需要具体的测试ID可以替换
-                    if (isInterstitial(adType)) {
-                        "a937c3941707bd3c" 
-                    } else {
-                        "a9a6a729098df1bb"
-                    }
+                    if (isInterstitial(adType)) "a937c3941707bd3c" else "a9a6a729098df1bb"
                 }
 
-                // 强制设置虚拟Id为0用于测试记录
                 val virtualId = 0
 
                 if (adSource == AdSource.ADMOB) {
                     if (isAppOpen(adType)) {
-                        showAdMobAppOpen(activity, virtualId, adUnitId, onAdClosed)
+                        showAdMobAppOpen(activity, virtualId, adUnitId, onComplete)
                     } else if (isInterstitial(adType)) {
-                        showAdMobInterstitial(activity, virtualId, adUnitId, onAdClosed)
+                        showAdMobInterstitial(activity, virtualId, adUnitId, onComplete)
                     } else {
-                        showAdMobRewarded(activity, virtualId, adUnitId, onAdClosed, onReward)
+                        showAdMobRewarded(activity, virtualId, adUnitId, onComplete)
                     }
                 } else if (adSource == AdSource.APPLOVIN || adSource == AdSource.APPLOVIN_TWO) {
                     if (isAppOpen(adType) || isInterstitial(adType)) {
-                        showMaxInterstitial(activity, virtualId, adUnitId, onAdClosed)
+                        showMaxInterstitial(activity, virtualId, adUnitId, onComplete)
                     } else {
-                        showMaxRewarded(activity, virtualId, adUnitId, onAdClosed, onReward)
+                        showMaxRewarded(activity, virtualId, adUnitId, onComplete)
                     }
                 } else {
                     Log.e(TAG, "未知的广告源: adSource=$adSource")
-                    onAdClosed?.invoke()
+                    withContext(Dispatchers.Main) { onComplete?.invoke(false) }
                 }
+                com.vitalo.markrun.ui.common.GlobalOverlayManager.dismissLoading()
             } catch (e: Exception) {
                 Log.e(TAG, "测试广告展示异常: ${e.message}")
-                onAdClosed?.invoke()
+                com.vitalo.markrun.ui.common.GlobalOverlayManager.dismissLoading()
+                withContext(Dispatchers.Main) { onComplete?.invoke(false) }
             }
         }
     }
 
     /**
      * 展示广告
+     * @param onComplete 广告完成回调，rewarded=true 表示看完了激励视频并触发奖励；
+     *                   对于插屏广告，关闭后 rewarded=false；
+     *                   加载失败/超时时，rewarded=false。
      */
     fun showAd(
         activity: Activity,
         virtualId: Int,
-        onAdClosed: (() -> Unit)? = null,
-        onReward: (() -> Unit)? = null
+        onComplete: ((rewarded: Boolean) -> Unit)? = null
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
+                com.vitalo.markrun.ui.common.GlobalOverlayManager.showLoading()
                 withTimeout(30_000L) {
-                    // 1. 获取对应的 AdConfig，检查 AB 实验或各种限制（频率，次数等）
+                    // 1. 获取对应的 AdConfig，检查 AB 实验或各种限制
                     val adConfig = getAdConfig(virtualId)
                     if (!checkAdIfAllowed(virtualId, adConfig)) {
                         Log.d(TAG, "广告被AB配置拦截或达到上限: virtualId=$virtualId")
-                        onAdClosed?.invoke()
+                        com.vitalo.markrun.ui.common.GlobalOverlayManager.dismissLoading()
+                        withContext(Dispatchers.Main) { onComplete?.invoke(false) }
                         return@withTimeout
                     }
 
@@ -205,7 +203,8 @@ object AdManager {
                     val adModuleItem = getAdModuleItem(activity, virtualId)
                     if (adModuleItem == null || adModuleItem.adId.isNullOrEmpty()) {
                         Log.e(TAG, "获取不到广告配置或adId为空: virtualId=$virtualId")
-                        onAdClosed?.invoke()
+                        com.vitalo.markrun.ui.common.GlobalOverlayManager.dismissLoading()
+                        withContext(Dispatchers.Main) { onComplete?.invoke(false) }
                         return@withTimeout
                     }
 
@@ -215,29 +214,32 @@ object AdManager {
 
                     if (adSource == AdSource.ADMOB) {
                         if (isAppOpen(adType)) {
-                            showAdMobAppOpen(activity, virtualId, adUnitId, onAdClosed)
+                            showAdMobAppOpen(activity, virtualId, adUnitId, onComplete)
                         } else if (isInterstitial(adType)) {
-                            showAdMobInterstitial(activity, virtualId, adUnitId, onAdClosed)
+                            showAdMobInterstitial(activity, virtualId, adUnitId, onComplete)
                         } else {
-                            showAdMobRewarded(activity, virtualId, adUnitId, onAdClosed, onReward)
+                            showAdMobRewarded(activity, virtualId, adUnitId, onComplete)
                         }
                     } else if (adSource == AdSource.APPLOVIN || adSource == AdSource.APPLOVIN_TWO) {
                         if (isAppOpen(adType) || isInterstitial(adType)) {
-                            showMaxInterstitial(activity, virtualId, adUnitId, onAdClosed)
+                            showMaxInterstitial(activity, virtualId, adUnitId, onComplete)
                         } else {
-                            showMaxRewarded(activity, virtualId, adUnitId, onAdClosed, onReward)
+                            showMaxRewarded(activity, virtualId, adUnitId, onComplete)
                         }
                     } else {
                         Log.e(TAG, "未知的广告源: adSource=$adSource")
-                        onAdClosed?.invoke()
+                        withContext(Dispatchers.Main) { onComplete?.invoke(false) }
                     }
+                    com.vitalo.markrun.ui.common.GlobalOverlayManager.dismissLoading()
                 }
             } catch (e: TimeoutCancellationException) {
                 Log.e(TAG, "广告加载超时30s: virtualId=$virtualId")
-                onAdClosed?.invoke()
+                com.vitalo.markrun.ui.common.GlobalOverlayManager.dismissLoading()
+                withContext(Dispatchers.Main) { onComplete?.invoke(false) }
             } catch (e: Exception) {
                 Log.e(TAG, "广告展示异常: ${e.message}")
-                onAdClosed?.invoke()
+                com.vitalo.markrun.ui.common.GlobalOverlayManager.dismissLoading()
+                withContext(Dispatchers.Main) { onComplete?.invoke(false) }
             }
         }
     }
@@ -273,10 +275,10 @@ object AdManager {
         })
     }
 
-    private suspend fun showAdMobInterstitial(activity: Activity, virtualId: Int, adUnitId: String, onAdClosed: (() -> Unit)?) {
+    private suspend fun showAdMobInterstitial(activity: Activity, virtualId: Int, adUnitId: String, onComplete: ((Boolean) -> Unit)?) {
         val cachedAd = admobInterstitialAds[adUnitId]
         if (cachedAd != null) {
-            displayAdMobInterstitial(activity, virtualId, adUnitId, cachedAd, onAdClosed)
+            displayAdMobInterstitial(activity, virtualId, adUnitId, cachedAd, onComplete)
         } else {
             val loadResult = CompletableDeferred<InterstitialAd?>()
             val adRequest = AdRequest.Builder().build()
@@ -291,23 +293,23 @@ object AdManager {
             })
             val ad = loadResult.await()
             if (ad != null) {
-                displayAdMobInterstitial(activity, virtualId, adUnitId, ad, onAdClosed)
+                displayAdMobInterstitial(activity, virtualId, adUnitId, ad, onComplete)
             } else {
-                onAdClosed?.invoke()
+                withContext(Dispatchers.Main) { onComplete?.invoke(false) }
             }
         }
     }
 
-    private fun displayAdMobInterstitial(activity: Activity, virtualId: Int, adUnitId: String, ad: InterstitialAd, onAdClosed: (() -> Unit)?) {
+    private fun displayAdMobInterstitial(activity: Activity, virtualId: Int, adUnitId: String, ad: InterstitialAd, onComplete: ((Boolean) -> Unit)?) {
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdDismissedFullScreenContent() {
                 admobInterstitialAds.remove(adUnitId)
-                onAdClosed?.invoke()
+                onComplete?.invoke(false)
             }
             override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                 Log.e(TAG, "AdMob 插屏展示失败: ${adError.message}")
                 admobInterstitialAds.remove(adUnitId)
-                onAdClosed?.invoke()
+                onComplete?.invoke(false)
             }
             override fun onAdShowedFullScreenContent() {
                 recordAdShown(virtualId)
@@ -333,10 +335,10 @@ object AdManager {
         })
     }
 
-    private suspend fun showAdMobRewarded(activity: Activity, virtualId: Int, adUnitId: String, onAdClosed: (() -> Unit)?, onReward: (() -> Unit)?) {
+    private suspend fun showAdMobRewarded(activity: Activity, virtualId: Int, adUnitId: String, onComplete: ((Boolean) -> Unit)?) {
         val cachedAd = admobRewardedAds[adUnitId]
         if (cachedAd != null) {
-            displayAdMobRewarded(activity, virtualId, adUnitId, cachedAd, onAdClosed, onReward)
+            displayAdMobRewarded(activity, virtualId, adUnitId, cachedAd, onComplete)
         } else {
             val loadResult = CompletableDeferred<RewardedAd?>()
             val adRequest = AdRequest.Builder().build()
@@ -351,27 +353,24 @@ object AdManager {
             })
             val ad = loadResult.await()
             if (ad != null) {
-                displayAdMobRewarded(activity, virtualId, adUnitId, ad, onAdClosed, onReward)
+                displayAdMobRewarded(activity, virtualId, adUnitId, ad, onComplete)
             } else {
-                onAdClosed?.invoke()
+                withContext(Dispatchers.Main) { onComplete?.invoke(false) }
             }
         }
     }
 
-    private fun displayAdMobRewarded(activity: Activity, virtualId: Int, adUnitId: String, ad: RewardedAd, onAdClosed: (() -> Unit)?, onReward: (() -> Unit)?) {
+    private fun displayAdMobRewarded(activity: Activity, virtualId: Int, adUnitId: String, ad: RewardedAd, onComplete: ((Boolean) -> Unit)?) {
         var isRewarded = false
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdDismissedFullScreenContent() {
                 admobRewardedAds.remove(adUnitId)
-                if (isRewarded) {
-                    onReward?.invoke()
-                }
-                onAdClosed?.invoke()
+                onComplete?.invoke(isRewarded)
             }
             override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                 Log.e(TAG, "AdMob 激励视频展示失败: ${adError.message}")
                 admobRewardedAds.remove(adUnitId)
-                onAdClosed?.invoke()
+                onComplete?.invoke(false)
             }
             override fun onAdShowedFullScreenContent() {
                 recordAdShown(virtualId)
@@ -404,10 +403,10 @@ object AdManager {
         )
     }
 
-    private suspend fun showAdMobAppOpen(activity: Activity, virtualId: Int, adUnitId: String, onAdClosed: (() -> Unit)?) {
+    private suspend fun showAdMobAppOpen(activity: Activity, virtualId: Int, adUnitId: String, onComplete: ((Boolean) -> Unit)?) {
         val cachedAd = admobAppOpenAds[adUnitId]
         if (cachedAd != null) {
-            displayAdMobAppOpen(activity, virtualId, adUnitId, cachedAd, onAdClosed)
+            displayAdMobAppOpen(activity, virtualId, adUnitId, cachedAd, onComplete)
         } else {
             val loadResult = CompletableDeferred<AppOpenAd?>()
             val adRequest = AdRequest.Builder().build()
@@ -427,23 +426,23 @@ object AdManager {
             )
             val ad = loadResult.await()
             if (ad != null) {
-                displayAdMobAppOpen(activity, virtualId, adUnitId, ad, onAdClosed)
+                displayAdMobAppOpen(activity, virtualId, adUnitId, ad, onComplete)
             } else {
-                onAdClosed?.invoke()
+                withContext(Dispatchers.Main) { onComplete?.invoke(false) }
             }
         }
     }
 
-    private fun displayAdMobAppOpen(activity: Activity, virtualId: Int, adUnitId: String, ad: AppOpenAd, onAdClosed: (() -> Unit)?) {
+    private fun displayAdMobAppOpen(activity: Activity, virtualId: Int, adUnitId: String, ad: AppOpenAd, onComplete: ((Boolean) -> Unit)?) {
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdDismissedFullScreenContent() {
                 admobAppOpenAds.remove(adUnitId)
-                onAdClosed?.invoke()
+                onComplete?.invoke(false)
             }
             override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                 Log.e(TAG, "AdMob 开屏展示失败: ${adError.message}")
                 admobAppOpenAds.remove(adUnitId)
-                onAdClosed?.invoke()
+                onComplete?.invoke(false)
             }
             override fun onAdShowedFullScreenContent() {
                 recordAdShown(virtualId)
@@ -475,7 +474,7 @@ object AdManager {
         }
     }
 
-    private suspend fun showMaxInterstitial(activity: Activity, virtualId: Int, adUnitId: String, onAdClosed: (() -> Unit)?) {
+    private suspend fun showMaxInterstitial(activity: Activity, virtualId: Int, adUnitId: String, onComplete: ((Boolean) -> Unit)?) {
         var interstitialAd = maxInterstitialAds[adUnitId]
         if (interstitialAd == null) {
             interstitialAd = MaxInterstitialAd(adUnitId, activity)
@@ -483,7 +482,7 @@ object AdManager {
         }
 
         if (interstitialAd!!.isReady) {
-            displayMaxInterstitial(activity, virtualId, interstitialAd, onAdClosed)
+            displayMaxInterstitial(activity, virtualId, interstitialAd, onComplete)
         } else {
             val loadResult = CompletableDeferred<Boolean>()
             interstitialAd.setListener(object : MaxAdListener {
@@ -502,14 +501,14 @@ object AdManager {
             interstitialAd.loadAd()
             val success = loadResult.await()
             if (success) {
-                displayMaxInterstitial(activity, virtualId, interstitialAd, onAdClosed)
+                displayMaxInterstitial(activity, virtualId, interstitialAd, onComplete)
             } else {
-                onAdClosed?.invoke()
+                withContext(Dispatchers.Main) { onComplete?.invoke(false) }
             }
         }
     }
 
-    private fun displayMaxInterstitial(activity: Activity, virtualId: Int, ad: MaxInterstitialAd, onAdClosed: (() -> Unit)?) {
+    private fun displayMaxInterstitial(activity: Activity, virtualId: Int, ad: MaxInterstitialAd, onComplete: ((Boolean) -> Unit)?) {
         ad.setListener(object : MaxAdListener {
             override fun onAdLoaded(maxAd: MaxAd) {}
             override fun onAdLoadFailed(adUnitId: String, error: MaxError) {}
@@ -517,12 +516,12 @@ object AdManager {
                 recordAdShown(virtualId)
             }
             override fun onAdHidden(maxAd: MaxAd) {
-                onAdClosed?.invoke()
+                onComplete?.invoke(false)
             }
             override fun onAdClicked(maxAd: MaxAd) {}
             override fun onAdDisplayFailed(maxAd: MaxAd, error: MaxError) {
                 Log.e(TAG, "AppLovin 插屏展示失败: ${error.message}")
-                onAdClosed?.invoke()
+                onComplete?.invoke(false)
             }
         })
         ad.showAd()
@@ -548,7 +547,7 @@ object AdManager {
         }
     }
 
-    private suspend fun showMaxRewarded(activity: Activity, virtualId: Int, adUnitId: String, onAdClosed: (() -> Unit)?, onReward: (() -> Unit)?) {
+    private suspend fun showMaxRewarded(activity: Activity, virtualId: Int, adUnitId: String, onComplete: ((Boolean) -> Unit)?) {
         var rewardedAd = maxRewardedAds[adUnitId]
         if (rewardedAd == null) {
             rewardedAd = MaxRewardedAd.getInstance(adUnitId, activity)
@@ -556,7 +555,7 @@ object AdManager {
         }
 
         if (rewardedAd!!.isReady) {
-            displayMaxRewarded(activity, virtualId, rewardedAd, onAdClosed, onReward)
+            displayMaxRewarded(activity, virtualId, rewardedAd, onComplete)
         } else {
             val loadResult = CompletableDeferred<Boolean>()
             rewardedAd.setListener(object : MaxRewardedAdListener {
@@ -576,33 +575,34 @@ object AdManager {
             rewardedAd.loadAd()
             val success = loadResult.await()
             if (success) {
-                displayMaxRewarded(activity, virtualId, rewardedAd, onAdClosed, onReward)
+                displayMaxRewarded(activity, virtualId, rewardedAd, onComplete)
             } else {
-                onAdClosed?.invoke()
+                withContext(Dispatchers.Main) { onComplete?.invoke(false) }
             }
         }
     }
 
-    private fun displayMaxRewarded(activity: Activity, virtualId: Int, ad: MaxRewardedAd, onAdClosed: (() -> Unit)?, onReward: (() -> Unit)?) {
+    private fun displayMaxRewarded(activity: Activity, virtualId: Int, ad: MaxRewardedAd, onComplete: ((Boolean) -> Unit)?) {
         var isRewarded = false
+        Log.d(TAG, "[MAX] displayMaxRewarded called, virtualId=$virtualId")
         ad.setListener(object : MaxRewardedAdListener {
             override fun onAdLoaded(maxAd: MaxAd) {}
             override fun onAdLoadFailed(adUnitId: String, error: MaxError) {}
             override fun onAdDisplayed(maxAd: MaxAd) {
+                Log.d(TAG, "[MAX] onAdDisplayed")
                 recordAdShown(virtualId)
             }
             override fun onAdHidden(maxAd: MaxAd) {
-                if (isRewarded) {
-                    onReward?.invoke()
-                }
-                onAdClosed?.invoke()
+                Log.d(TAG, "[MAX] onAdHidden, isRewarded=$isRewarded")
+                onComplete?.invoke(isRewarded)
             }
             override fun onAdClicked(maxAd: MaxAd) {}
             override fun onAdDisplayFailed(maxAd: MaxAd, error: MaxError) {
                 Log.e(TAG, "AppLovin 激励展示失败: ${error.message}")
-                onAdClosed?.invoke()
+                onComplete?.invoke(false)
             }
             override fun onUserRewarded(maxAd: MaxAd, reward: MaxReward) {
+                Log.d(TAG, "[MAX] onUserRewarded")
                 isRewarded = true
             }
         })
@@ -631,16 +631,16 @@ object AdManager {
         
         // 2. 检查每日上限
         val currentCount = MmkvUtils.getInt(countKey, 0)
-        if (currentCount >= adConfig.adNumLimit) {
-            Log.d(TAG, "广告达到每日上限: $currentCount >= ${adConfig.adNumLimit}")
+        if (currentCount >= adConfig.adDailyLimit) {
+            Log.d(TAG, "广告达到每日上限: $currentCount >= ${adConfig.adDailyLimit}")
             return false
         }
         
         // 3. 检查广告间隔 (ads_lag单位是秒)
         val lastTime = MmkvUtils.getLong(lastTimeKey, 0L)
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastTime < adConfig.adIntervals * 1000L) {
-            Log.d(TAG, "广告未达到间隔时间: 间隔需 ${adConfig.adIntervals} 秒")
+        if (currentTime - lastTime < adConfig.adInterval * 1000L) {
+            Log.d(TAG, "广告未达到间隔时间: 间隔需 ${adConfig.adInterval} 秒")
             return false
         }
         

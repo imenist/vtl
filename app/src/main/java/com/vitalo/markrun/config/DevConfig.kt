@@ -3,7 +3,7 @@ package com.vitalo.markrun.config
 class DevConfig : ProductConfig() {
 
     override val packageName: String
-        get() = "com.vitalo.markrun.dev"
+        get() = "com.markrun.dev"
 
     // Dev 环境暂时沿用与生产相同的 API 配置（iOS 的 key）
     // 如有测试环境 URL，在此覆盖即可：
@@ -15,6 +15,8 @@ class DevConfig : ProductConfig() {
         get() = "wFID5SOkNZtWOAsWSoyCozlIIQWiX6B6"
     override val trainingDesKey: String
         get() = "qEXOutWnp54"
+    override val abTestRequestPkgName: String
+        get() = "com.markrun.dev"
 
     // ─── NewStoreLite (广告) - 测试服 ───
     override val adBaseUrl: String

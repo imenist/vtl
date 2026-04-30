@@ -117,6 +117,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.gson)
+    implementation("com.base.http:http:1.0.9")
 
     // Image
     implementation(libs.coil.compose)

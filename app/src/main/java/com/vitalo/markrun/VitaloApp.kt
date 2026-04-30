@@ -6,25 +6,16 @@ import android.util.Log
 import com.applovin.sdk.AppLovinMediationProvider
 import com.applovin.sdk.AppLovinSdk
 import com.applovin.sdk.AppLovinSdkInitializationConfiguration
-import com.vitalo.markrun.ab.AbManager
+import com.vitalo.markrun.common.ab.AbConfigDataRepo
+import com.vitalo.markrun.common.statistic.StatSdkManger
 import com.vitalo.markrun.config.AppConfig
 import com.vitalo.markrun.config.DevConfig
 import com.vitalo.markrun.config.ProductConfig
 import com.vitalo.markrun.util.MmkvUtils
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
 class VitaloApp : Application() {
-
-    @EntryPoint
-    @InstallIn(SingletonComponent::class)
-    interface VitaloAppEntryPoint {
-        fun abManager(): AbManager
-    }
 
     companion object {
         private lateinit var instance: VitaloApp
@@ -34,13 +25,15 @@ class VitaloApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        installSdk()
         installConfig()
-        initAbManager()
+        initSdk()
+        initAbRepo()
     }
 
-    private fun installSdk() {
+    private fun initSdk() {
         MmkvUtils.initialize(this)
+        StatSdkManger.initSdk(this)
+        com.vitalo.markrun.common.http.HttpClient.init(this)
         // 初始化 AppLovin MAX SDK（必须在 Application 启动时调用，否则广告无法加载）
         // SDK Key 从 AndroidManifest.xml 的 applovin.sdk.key meta-data 自动读取
         val sdkKey = packageManager
@@ -60,11 +53,9 @@ class VitaloApp : Application() {
         AppConfig.install(config)
     }
 
-    private fun initAbManager() {
-        val entryPoint = EntryPointAccessors.fromApplication(
-            this, VitaloAppEntryPoint::class.java
-        )
-        entryPoint.abManager().init()
+    private fun initAbRepo() {
+        // 统一走 common/ab 的旧链路：先读缓存，再按 8 小时策略决定是否发请求
+        AbConfigDataRepo.refreshRemoteData(false)
     }
 }
 

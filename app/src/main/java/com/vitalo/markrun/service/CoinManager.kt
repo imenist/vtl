@@ -45,4 +45,11 @@ class CoinManager @Inject constructor(
             }
         }
     }
+
+    fun addCoin(amount: Int) {
+        val current = appPreferences.getInt("local_coin_balance")
+        val newVal = current + amount
+        appPreferences.setInt("local_coin_balance", newVal)
+        _coinBalance.value = _coinBalance.value + amount
+    }
 }

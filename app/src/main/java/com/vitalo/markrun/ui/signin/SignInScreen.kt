@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
+import android.app.Activity
+import androidx.compose.ui.platform.LocalContext
 import com.vitalo.markrun.R
 import com.vitalo.markrun.data.remote.model.SignInModel
 import com.vitalo.markrun.data.remote.model.SignInRewardType
@@ -156,6 +158,7 @@ fun SignInOverlay(
                     // 日历容器
                     SignInCalendarContainer(
                         viewModel = viewModel,
+                        signInData = signInData,
                         pagerState = pagerState,
                         onPageChange = { week ->
                             coroutineScope.launch {
@@ -224,6 +227,7 @@ private fun SignInRemainingDaysView(remainingDays: Int) {
 @Composable
 private fun SignInCalendarContainer(
     viewModel: SignInViewModel,
+    signInData: List<SignInModel>,
     pagerState: androidx.compose.foundation.pager.PagerState,
     onPageChange: (Int) -> Unit
 ) {
@@ -258,7 +262,9 @@ private fun SignInCalendarContainer(
                     .width(311.dp)
                     .height(195.dp)
             ) { page ->
-                val weekData = viewModel.getWeekData(page)
+                val start = page * 7
+                val end = minOf(start + 7, signInData.size)
+                val weekData = if (start < signInData.size) signInData.subList(start, end) else emptyList()
                 SignInCalendarGridView(
                     weekData = weekData,
                     viewModel = viewModel
@@ -274,7 +280,10 @@ private fun SignInCalendarContainer(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            SignInChestGroupView(viewModel = viewModel)
+            SignInChestGroupView(
+                viewModel = viewModel,
+                signInData = signInData
+            )
         }
     }
 }
@@ -438,14 +447,22 @@ private fun SignInCalendarCell(
 
     val dayText = if (isExpired) "Re-sign" else "Day ${model.day}"
     val dayLabelColor = if (isFuture) DayLabelColorFuture else DayLabelColorOther
+    val context = LocalContext.current
 
     val shape: Shape = RoundedCornerShape(9.dp)
 
     Box(
         modifier = modifier
             .zIndex(if (isToday) 1f else 0f) // 确保今天的Cell在最上层
-            .clickable(enabled = (isToday || isExpired) && !isSignedIn) {
-                viewModel.signIn(model.day)
+            .clickable {
+                if (isFuture) {
+                    android.widget.Toast.makeText(context, "The reward is not available yet", android.widget.Toast.LENGTH_SHORT).show()
+                } else if (isSignedIn) {
+                    android.widget.Toast.makeText(context, "You have already received this reward", android.widget.Toast.LENGTH_SHORT).show()
+                } else if (isToday || isExpired) {
+                    val activity = context.findActivity()
+                    activity?.let { act -> viewModel.signIn(act, model.day) }
+                }
             },
         contentAlignment = Alignment.Center
     ) {
@@ -615,8 +632,12 @@ private fun getRewardDisplayText(model: SignInModel): String {
 
 // -------------------- 累计签到宝箱 --------------------
 @Composable
-private fun SignInChestGroupView(viewModel: SignInViewModel) {
-    val totalSignDays = viewModel.getTotalSignDays()
+private fun SignInChestGroupView(
+    viewModel: SignInViewModel,
+    signInData: List<SignInModel>
+) {
+    val totalSignDays = signInData.count { it.isSignedIn }
+    val claimedChests by viewModel.claimedChests.collectAsState()
 
     val progress2To7 = when {
         totalSignDays < 2 -> 0f
@@ -661,14 +682,16 @@ private fun SignInChestGroupView(viewModel: SignInViewModel) {
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SignInChestItem(2, totalSignDays, viewModel.isChestClaimed(2)) {
-                viewModel.claimChest(2)
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val activity = context.findActivity()
+            SignInChestItem(2, totalSignDays, claimedChests.contains(2)) {
+                activity?.let { act -> viewModel.claimChest(act, 2) }
             }
-            SignInChestItem(7, totalSignDays, viewModel.isChestClaimed(7)) {
-                viewModel.claimChest(7)
+            SignInChestItem(7, totalSignDays, claimedChests.contains(7)) {
+                activity?.let { act -> viewModel.claimChest(act, 7) }
             }
-            SignInChestItem(15, totalSignDays, viewModel.isChestClaimed(15)) {
-                viewModel.claimChest(15)
+            SignInChestItem(15, totalSignDays, claimedChests.contains(15)) {
+                activity?.let { act -> viewModel.claimChest(act, 15) }
             }
         }
     }
@@ -778,4 +801,10 @@ private fun SignInChestProgressBar(
                 )
         )
     }
+}
+
+private tailrec fun android.content.Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

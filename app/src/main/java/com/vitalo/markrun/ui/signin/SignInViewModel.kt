@@ -8,11 +8,15 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
+import android.app.Activity
+import com.vitalo.markrun.ad.AdManager
+import com.vitalo.markrun.ad.Ads
 import javax.inject.Inject
 
 @HiltViewModel
 class SignInViewModel @Inject constructor(
-    private val appPreferences: AppPreferences
+    private val appPreferences: AppPreferences,
+    private val coinManager: com.vitalo.markrun.service.CoinManager
 ) : ViewModel() {
 
     private val cycleDays = 28
@@ -31,6 +35,9 @@ class SignInViewModel @Inject constructor(
     private val _currentWeekIndex = MutableStateFlow(0)
     val currentWeekIndex: StateFlow<Int> = _currentWeekIndex
 
+    private val _claimedChests = MutableStateFlow<Set<Int>>(emptySet())
+    val claimedChests: StateFlow<Set<Int>> = _claimedChests
+
     private var cycleStartDate: Long
 
     init {
@@ -41,6 +48,15 @@ class SignInViewModel @Inject constructor(
         }
         initializeSignInData()
         updateCurrentStatus()
+        updateClaimedChests()
+    }
+
+    private fun updateClaimedChests() {
+        val claimed = mutableSetOf<Int>()
+        if (appPreferences.getBoolean("SignInChestClaimed_2")) claimed.add(2)
+        if (appPreferences.getBoolean("SignInChestClaimed_7")) claimed.add(7)
+        if (appPreferences.getBoolean("SignInChestClaimed_15")) claimed.add(15)
+        _claimedChests.value = claimed
     }
 
     private fun initializeSignInData() {
@@ -85,6 +101,7 @@ class SignInViewModel @Inject constructor(
             appPreferences.remove("SignInChestClaimed_2")
             appPreferences.remove("SignInChestClaimed_7")
             appPreferences.remove("SignInChestClaimed_15")
+            updateClaimedChests()
             
             initializeSignInData()
             val newDays = daysBetween(cycleStart, today)
@@ -112,7 +129,7 @@ class SignInViewModel @Inject constructor(
         return _signInData.value.subList(start, end)
     }
 
-    fun signIn(day: Int? = null) {
+    fun signIn(activity: Activity, day: Int? = null) {
         val targetDay = day ?: _currentDay.value
         if (targetDay < 1 || targetDay > cycleDays) return
 
@@ -120,22 +137,31 @@ class SignInViewModel @Inject constructor(
         val isExpired = targetDay < _currentDay.value
         if (!isToday && !isExpired) return
 
-        val data = _signInData.value.toMutableList()
-        val index = data.indexOfFirst { it.day == targetDay }
-        if (index < 0 || data[index].isSignedIn) return
+        // Verify the day is not already signed in before launching ad
+        val currentData = _signInData.value
+        val index = currentData.indexOfFirst { it.day == targetDay }
+        if (index < 0 || currentData[index].isSignedIn) return
 
-        // TODO: 接入广告 SDK 后在此处展示广告
-        // AdManager.showAd(onReward = { success ->
-        //     if (success) {
-        //         performSignIn(targetDay, index, data)
-        //     }
-        // })
-        
-        // 目前暂时代替为直接签到成功
-        performSignIn(index, data)
+        android.util.Log.d("SignInViewModel", "signIn: calling AdManager.showAd for day=$targetDay")
+
+        AdManager.showAd(
+            activity = activity,
+            virtualId = Ads.REWARD_ACTIVITY_SIGN_IN,
+            onComplete = {
+                android.util.Log.d("SignInViewModel", "onComplete triggered for day=$targetDay")
+                performSignIn(targetDay)
+            }
+        )
     }
 
-    private fun performSignIn(index: Int, data: MutableList<SignInModel>) {
+    private fun performSignIn(targetDay: Int) {
+        android.util.Log.d("SignInViewModel", "performSignIn: day=$targetDay")
+        val data = _signInData.value.toMutableList()
+        val index = data.indexOfFirst { it.day == targetDay }
+        if (index < 0 || data[index].isSignedIn) {
+            android.util.Log.w("SignInViewModel", "performSignIn: day already signed or not found")
+            return
+        }
         data[index] = data[index].copy(
             isSignedIn = true,
             signInDate = System.currentTimeMillis()
@@ -143,37 +169,39 @@ class SignInViewModel @Inject constructor(
         _signInData.value = data
         saveSignedInData()
 
+        android.util.Log.d("SignInViewModel", "performSignIn: rewardType=${data[index].rewardType}, amount=${data[index].rewardAmount}")
         if (data[index].rewardType == SignInRewardType.COIN) {
-            addLocalCoin(data[index].rewardAmount)
+            coinManager.addCoin(data[index].rewardAmount)
+            com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(data[index].rewardAmount)
         }
-        
+
         updateCurrentStatus()
     }
 
     fun getTotalSignDays(): Int = _signInData.value.count { it.isSignedIn }
 
     fun isChestClaimed(requiredDays: Int): Boolean {
-        return appPreferences.getBoolean("SignInChestClaimed_$requiredDays")
+        return _claimedChests.value.contains(requiredDays)
     }
 
-    fun claimChest(requiredDays: Int) {
+    fun claimChest(activity: Activity, requiredDays: Int) {
         val accumulateDays = getTotalSignDays()
         if (!isChestClaimed(requiredDays) && accumulateDays >= requiredDays) {
-            // TODO: 接入广告 SDK 后在此处展示广告
-            // AdManager.showAd(onReward = { success ->
-            //     if (success) {
-            //         performClaimChest(requiredDays)
-            //     }
-            // })
-            
-            // 目前暂时代替为直接领取成功
-            performClaimChest(requiredDays)
+            AdManager.showAd(
+                activity = activity,
+                virtualId = Ads.REWARD_ACTIVITY_SIGN_IN,
+                onComplete = {
+                    performClaimChest(requiredDays)
+                }
+            )
         }
     }
     
     private fun performClaimChest(requiredDays: Int) {
         appPreferences.setBoolean("SignInChestClaimed_$requiredDays", true)
-        addLocalCoin(100) // Default chest reward
+        updateClaimedChests()
+        coinManager.addCoin(100) // Default chest reward
+        com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(100)
         updateCurrentStatus()
     }
 
@@ -204,10 +232,5 @@ class SignInViewModel @Inject constructor(
         }
         val diffMs = endDay.timeInMillis - startDay.timeInMillis
         return (diffMs / (24 * 60 * 60 * 1000)).toInt()
-    }
-
-    private fun addLocalCoin(amount: Int) {
-        val current = appPreferences.getInt("local_coin_balance")
-        appPreferences.setInt("local_coin_balance", current + amount)
     }
 }

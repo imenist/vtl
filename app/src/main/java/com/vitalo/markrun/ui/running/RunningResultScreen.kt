@@ -255,13 +255,10 @@ fun RunningResultScreen(
                             AdManager.showAd(
                                 activity = activity,
                                 virtualId = Ads.REWARD_RUN_END,
-                                onAdClosed = {
+                                onComplete = {
                                     navController.navigate(Screen.Home.route) {
                                         popUpTo(0) { inclusive = true }
                                     }
-                                },
-                                onReward = {
-                                    // Optionally give reward here if tracking is needed
                                 }
                             )
                         } else {
@@ -301,9 +298,9 @@ fun RunningResultScreen(
                         AdManager.showAd(
                             activity = activity,
                             virtualId = Ads.REWARD_RUN_END,
-                            onAdClosed = { showTrainingPackageDialog = false },
-                            onReward = {
-                                GlobalOverlayManager.showCoinArrivedOverlay(100)
+                            onComplete = { rewarded ->
+                                showTrainingPackageDialog = false
+                                if (rewarded) GlobalOverlayManager.showCoinArrivedOverlay(100)
                             }
                         )
                     } else {

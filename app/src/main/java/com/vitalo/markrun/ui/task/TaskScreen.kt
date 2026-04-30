@@ -232,10 +232,11 @@ fun TaskScreen(
                         AdManager.showAd(
                             activity = activity,
                             virtualId = Ads.REWARD_TASK_STEP_LIMIT_UP,
-                            onAdClosed = { /* ad closed */ },
-                            onReward = {
-                                viewModel.markUpperStepConversionClaimed()
-                                com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(0)
+                            onComplete = { rewarded ->
+                                if (rewarded) {
+                                    viewModel.markUpperStepConversionClaimed()
+                                    com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(0)
+                                }
                             }
                         )
                     }

@@ -125,7 +125,7 @@ object AppStateManager {
     }
 
     fun getAppInstallDay(): Int {
-        val installTime = getAppInstallTime()
+        val installTime = AppStateManager.getAppInstallTime()
         val diffTime = System.currentTimeMillis() - installTime
         var cdays = diffTime / DateUtils.DAY_IN_MILLIS + 1
         if (cdays <= 0) {

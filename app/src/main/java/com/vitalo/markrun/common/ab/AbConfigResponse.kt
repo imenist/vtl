@@ -2,6 +2,7 @@ package com.vitalo.markrun.common.ab
 
 import androidx.annotation.Keep
 import com.google.gson.annotations.SerializedName
+import com.vitalo.markrun.common.ab.impl.*
 
 @Keep
 class AbConfigResponse {

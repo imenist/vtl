@@ -1,12 +1,14 @@
 package com.vitalo.markrun.navigation
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,6 +23,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -28,6 +32,7 @@ import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.vitalo.markrun.R
+import com.vitalo.markrun.ui.common.CommonLoadingView
 import com.vitalo.markrun.ui.common.GlobalOverlayManager
 import com.vitalo.markrun.ui.debug.AppDebugScreen
 import com.vitalo.markrun.ui.exchange.ConversionRulesDialog
@@ -244,6 +249,22 @@ fun NavGraph() {
                 coinExchangeRate = GlobalOverlayManager.conversionRulesExchangeRate,
                 onClose = { GlobalOverlayManager.dismissConversionRulesOverlay() }
             )
+        }
+
+        if (GlobalOverlayManager.isLoading) {
+            Dialog(
+                onDismissRequest = { /* Do nothing, blocks interaction */ },
+                properties = DialogProperties(
+                    dismissOnBackPress = false,
+                    dismissOnClickOutside = false
+                )
+            ) {
+                CommonLoadingView(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .background(Color.Black, shape = RoundedCornerShape(8.dp))
+                )
+            }
         }
 
         // Debug 悬浮窗

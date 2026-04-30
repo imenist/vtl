@@ -26,11 +26,11 @@ interface IAppConfig {
 
     // ─── ABTest ───
     val abTestBaseUrl: String
-    val abTestCid: String
+    val abTestCid: Int
+    val abTestCid2: Int
     val abTestProductKey: String
-    val abTestAccessKey: String
     val abTestSecretKey: String
-    val abTestEntrance: Int
+    val abTestRequestPkgName: String
 
     // ─── NewStoreLite (广告) ───
     val adBaseUrl: String
@@ -38,16 +38,16 @@ interface IAppConfig {
     val adApiKey: String
     val adSecretKey: String
     val adDesKey: String
-
     val illusBaseUrl: String
     val illusApiKey: String
     val illusApiSecret: String
+
+
     val statBaseUrl: String
     val statProductId: Int
     val statChannelId: Int
     val functionId19: Int
     val functionId45: Int
-    val functionId59: Int
     val functionId104: Int
     val functionId105: Int
     val elephantBaseUrl: String

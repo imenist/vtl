@@ -18,6 +18,6 @@ fun CommonLoadingView(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center
     ) {
         CircularProgressIndicator()
-        Text("Loading...", color = Color.Gray)
+        Text("加载数据中...", color = Color.White)
     }
 }

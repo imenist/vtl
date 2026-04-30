@@ -1,8 +1,8 @@
 package com.vitalo.markrun.data.repository
 
-import com.vitalo.markrun.ab.AbConfigContract
-import com.vitalo.markrun.ab.AbManager
-import com.vitalo.markrun.ab.AbConfigResponse
+import com.vitalo.markrun.common.ab.AbConfigContract
+import com.vitalo.markrun.common.ab.AbManager
+import com.vitalo.markrun.common.ab.AbConfigResponse
 import com.vitalo.markrun.common.ab.BaseAbConfig
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
@@ -18,7 +18,7 @@ class ABTestRepository @Inject constructor(
     private val abManager: AbManager
 ) {
     /** 观察整体 AB 响应（StateFlow） */
-    val response: StateFlow<AbConfigResponse?> = abManager.response
+    val response: StateFlow<AbConfigResponse> = abManager.response
 
     /** 获取指定实验的第一条配置 */
     fun getConfig(contract: AbConfigContract): BaseAbConfig? =

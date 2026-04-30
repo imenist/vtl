@@ -23,6 +23,9 @@ object GlobalOverlayManager {
     var conversionRulesExchangeRate by mutableStateOf(1000.0)
         private set
 
+    var isLoading by mutableStateOf(false)
+        private set
+
     fun showSignInOverlay() {
         showSignIn = true
     }
@@ -55,5 +58,13 @@ object GlobalOverlayManager {
 
     fun dismissConversionRulesOverlay() {
         showConversionRules = false
+    }
+
+    fun showLoading() {
+        isLoading = true
+    }
+
+    fun dismissLoading() {
+        isLoading = false
     }
 }

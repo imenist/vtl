@@ -63,7 +63,7 @@ object HttpClient {
         Retrofit.Builder()
             // 使用自定义的 Gson 以保证 Null 和特殊字符不丢失
             .addConverterFactory(GsonConverterFactory.create(gson))
-            .baseUrl(AppConfig.illusBaseUrl)
+            .baseUrl(AppConfig.illusBaseUrl.takeIf { it.isNotEmpty() } ?: "https://placeholder.com/")
             .client(client())
             .build()
     }
