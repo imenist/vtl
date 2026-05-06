@@ -37,6 +37,7 @@ import com.vitalo.markrun.service.UserManager
 import com.vitalo.markrun.util.DeviceInfoUtils
 import com.vitalo.markrun.common.ab.AbConfigDataRepo
 import com.vitalo.markrun.common.ab.AbSidTable
+import com.vitalo.markrun.common.buy.BuySdkManager
 import com.vitalo.markrun.util.MmkvUtils
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
@@ -54,6 +55,7 @@ fun WebViewScreen(
 ) {
     var isLoading by remember { mutableStateOf(true) }
     var showError by remember { mutableStateOf(false) }
+    var isH5Ready by remember { mutableStateOf(false) }
     val url = remember(kind, index) { getWebGameUrl(kind, index) }
 
     Box(
@@ -65,10 +67,22 @@ fun WebViewScreen(
             factory = { context ->
                 @SuppressLint("SetJavaScriptEnabled")
                 val webView = WebView(context).apply {
+                    layoutParams = android.view.ViewGroup.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
+                    settings.databaseEnabled = true
+                    settings.useWideViewPort = true
+                    settings.loadWithOverviewMode = true
+                    settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                     settings.allowFileAccess = false
                     settings.setSupportZoom(false)
+                    settings.mediaPlaybackRequiresUserGesture = false
+                    settings.javaScriptCanOpenWindowsAutomatically = true
 
                     addJavascriptInterface(
                         VitaloBridge(
@@ -78,7 +92,8 @@ fun WebViewScreen(
                             appPreferences = appPreferences,
                             coinManager = coinManager,
                             deviceInfoUtils = deviceInfoUtils,
-                            onClose = { navController.popBackStack() }
+                            onClose = { navController.popBackStack() },
+                            onJsReady = { isH5Ready = true }
                         ),
                         "MarkRun"
                     )
@@ -119,25 +134,27 @@ fun WebViewScreen(
         )
 
         // Close button
-        Box(
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(start = 20.dp, top = 28.dp)
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.4f))
-                .clickable { navController.popBackStack() },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "✕",
-                fontSize = 18.sp,
-                color = Color.White.copy(alpha = 0.6f)
-            )
+        if (!isH5Ready) {
+            Box(
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .padding(start = 20.dp, top = 28.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .clickable { navController.popBackStack() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "✕",
+                    fontSize = 18.sp,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            }
         }
 
         // Loading overlay
-        if (isLoading) {
+        if (isLoading && !isH5Ready) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -201,9 +218,15 @@ private fun getWebGameUrl(kind: String, index: Int): String {
         "spinWheel" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageWheel"
         "smashEgg" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageSmashEgg"
         "signIn" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageSignIn"
-        "dailyRelaxation" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageBlank?game=dailyRelaxation"
-        "multiDailyRelaxation" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageBlank?game=multiDailyRelaxation&index=$index"
+        "game" -> AbConfigDataRepo.getH5AdEntryLinkControl()
+        "dailyRelaxation" -> AbConfigDataRepo.getDailyTaskH5AdLink(0) ?: "https://three.combatarenaelite.com/LY/10586/"
+        "multiDailyRelaxation" -> AbConfigDataRepo.getDailyTaskH5AdLink(index) ?: "https://three.combatarenaelite.com/LY/10586/"
         else -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageBlank?game=$kind"
+    }
+    
+    // 如果是外部的广告/活动链接（没有包含我们的基础域名），就直接返回该链接，不要再拼接额外的业务参数
+    if (!baseUrl.startsWith("https://h5-stage.mark-run.com")) {
+        return baseUrl
     }
     
     val separator = if (baseUrl.contains("?")) "&" else "?"
@@ -217,9 +240,12 @@ class VitaloBridge(
     private val appPreferences: AppPreferences?,
     private val coinManager: CoinManager?,
     private val deviceInfoUtils: DeviceInfoUtils?,
-    private val onClose: () -> Unit
+    private val onClose: () -> Unit,
+    private val onJsReady: () -> Unit
 ) {
     private val handler = Handler(Looper.getMainLooper())
+    private var isJsReady = false
+    private val pendingJsCommands = mutableListOf<String>()
 
     companion object {
         private const val TAG = "VitaloBridge"
@@ -238,14 +264,21 @@ class VitaloBridge(
         val timestamp = System.currentTimeMillis().toString()
         actionToJs("GET_SERVER_TIME", timestamp)
         actionToJs("GET_USER_CACHE_COINS", getCoinBalanceString())
-        actionToJs("GET_TODAY_REWARDED_AD_WATCHED_COUNT", buildAdWatchedCountJson(), false)
+        actionToJs("GET_TODAY_REWARDED_AD_WATCHED_COUNT", buildAdWatchedCountJson())
         actionToJs("GET_APP_INSTALLED_TIME", getAppInstalledTimeSeconds())
         // 主动下发 AB 配置（对标 iOS sendAbConfigIfAvailableOnAppear）
         val abConfig = makeAbConfigJSONString()
-        actionToJs("GET_AB_CONFIG", abConfig ?: "{}", false)
+        actionToJs("GET_AB_CONFIG", abConfig ?: "{}")
         // 主动推送备份数据（对标 iOS sendBackupCacheIfAvailable）
         val cached = appPreferences?.getString(KEY_H5_BACKUP_DATA) ?: "{}"
-        actionToJs("BACK_REQUEST", cached, false)
+        actionToJs("BACK_REQUEST", cached)
+        
+        // 主动下发设备信息和 JS 版本号（应对 H5 未主动请求或请求过早导致丢失的情况）
+        actionToJs("GET_DEVICE", buildDeviceInfoJson())
+        actionToJs("GET_JS_VERSION", "2")
+        
+        actionToJs("GET_CRACK_EGG_FRAGMENTS_COUNT", "")
+        actionToJs("GET_TOTAL_SIGN_DAYS", "")
     }
 
     @JavascriptInterface
@@ -268,7 +301,7 @@ class VitaloBridge(
                 "GET_JS_VERSION" -> actionToJs("GET_JS_VERSION", "2")
 
                 "GET_DEVICE" -> {
-                    actionToJs("GET_DEVICE", buildDeviceInfoJson(), false)
+                    actionToJs("GET_DEVICE", buildDeviceInfoJson())
                 }
 
                 "TOAST" -> {
@@ -305,7 +338,7 @@ class VitaloBridge(
                                     put("key", adKey)
                                     put("result", result)
                                 }
-                                actionToJs("NOTIFY_APP_SHOW_AD", responseJson.toString(), false)
+                                actionToJs("NOTIFY_APP_SHOW_AD", responseJson.toString())
                                 if (rewarded) incrementAdWatchCount()
                             }
                         } else {
@@ -313,7 +346,7 @@ class VitaloBridge(
                                 put("key", adKey)
                                 put("result", "failed")
                             }
-                            actionToJs("NOTIFY_APP_SHOW_AD", responseJson.toString(), false)
+                            actionToJs("NOTIFY_APP_SHOW_AD", responseJson.toString())
                         }
                     }
                 }
@@ -322,7 +355,7 @@ class VitaloBridge(
 
                 "GET_AB_CONFIG" -> {
                     val abConfig = makeAbConfigJSONString()
-                    actionToJs("GET_AB_CONFIG", abConfig ?: "{}", false)
+                    actionToJs("GET_AB_CONFIG", abConfig ?: "{}")
                 }
 
                 "NOTIFY_APP_COIN_CHANGE" -> {
@@ -383,12 +416,28 @@ class VitaloBridge(
                 }
 
                 "GET_TODAY_REWARDED_AD_WATCHED_COUNT" -> {
-                    actionToJs("GET_TODAY_REWARDED_AD_WATCHED_COUNT", buildAdWatchedCountJson(), false)
+                    actionToJs("GET_TODAY_REWARDED_AD_WATCHED_COUNT", buildAdWatchedCountJson())
+                }
+
+                "GET_CRACK_EGG_FRAGMENTS_COUNT" -> {
+                    actionToJs("GET_CRACK_EGG_FRAGMENTS_COUNT", "")
+                }
+
+                "GET_TOTAL_SIGN_DAYS" -> {
+                    actionToJs("GET_TOTAL_SIGN_DAYS", "")
                 }
 
                 "LOAD_FINISH" -> {
                     Log.d(TAG, "LOAD_FINISH received")
-                    sendToJsWhenShow()
+                    handler.post {
+                        isJsReady = true
+                        onJsReady()
+                        pendingJsCommands.forEach { js ->
+                            webView.evaluateJavascript(js, null)
+                        }
+                        pendingJsCommands.clear()
+                        sendToJsWhenShow()
+                    }
                 }
 
                 "BACKUP_UPLOAD" -> {
@@ -397,10 +446,14 @@ class VitaloBridge(
 
                 "BACK_REQUEST" -> {
                     val cachedData = appPreferences?.getString(KEY_H5_BACKUP_DATA) ?: "{}"
-                    actionToJs("BACK_REQUEST", cachedData, false)
+                    actionToJs("BACK_REQUEST", cachedData)
                 }
 
-                "ACCEPT_RESPONSE" -> {
+                "ACCEPT_RESPONSE",
+                "SHOW_NAVIGATION",
+                "SHOW_NAVIGATION_V2",
+                "NEED_INTERCEPT_KEY_EVENT",
+                "DELIVERY_KEY_EVENT" -> {
                     // Do nothing or handle if needed
                 }
 
@@ -457,7 +510,7 @@ class VitaloBridge(
     private fun buildDeviceInfoJson(): String {
         val infoMap = deviceInfoUtils?.getDeviceInfoMap()
         val json = JSONObject()
-        json.put("type", 1) 
+        json.put("type", 1)  //安卓为1 iOS为2
         json.put("did", infoMap?.get("device_id") ?: "")
         json.put("version_number", infoMap?.get("app_version") ?: 1)
         json.put("phone_model", infoMap?.get("phone_model") ?: "")
@@ -466,7 +519,7 @@ class VitaloBridge(
         json.put("country", infoMap?.get("sim_country") ?: "")
         json.put("time_zone", infoMap?.get("zone") ?: "")
         json.put("source", -1)
-        json.put("campaign", false)
+        json.put("campaign", BuySdkManager.getUserFrom())
         return json.toString()
     }
 
@@ -547,10 +600,13 @@ class VitaloBridge(
 
     private fun actionToJs(cmd: String, param: Any, isString: Boolean = true) {
         handler.post {
-            val encryptedCmd = tryEncrypt(cmd)
-            val paramStr = if (isString) "'$param'" else "$param"
-            val js = "javascript:actionToJs('$encryptedCmd', $paramStr)"
-            webView.evaluateJavascript(js, null)
+            val paramStr = if (isString) JSONObject.quote(param.toString()) else "$param"
+            val js = "window.actionToJs('$cmd', $paramStr)"
+            if (isJsReady) {
+                webView.evaluateJavascript(js, null)
+            } else {
+                pendingJsCommands.add(js)
+            }
         }
     }
 
@@ -558,6 +614,30 @@ class VitaloBridge(
     fun ACCEPT_RESPONSE(message: String) {
         // H5 might still call this directly
     }
+
+    @JavascriptInterface
+    fun getJsVersion(): String = "2"
+    
+    @JavascriptInterface
+    fun getServerTime(): String = System.currentTimeMillis().toString()
+    
+    @JavascriptInterface
+    fun getAbConfig(): String = makeAbConfigJSONString() ?: "{}"
+    
+    @JavascriptInterface
+    fun getUserCacheCoins(): String = getCoinBalanceString()
+    
+    @JavascriptInterface
+    fun getTodayRewardedAdWatchedCount(): String = buildAdWatchedCountJson()
+
+    @JavascriptInterface
+    fun getAppInstalledTime(): String = getAppInstalledTimeSeconds()
+
+    @JavascriptInterface
+    fun getCrackEggFragmentsCount(): String = ""
+    
+    @JavascriptInterface
+    fun getTotalSignDays(): String = ""
 
     @JavascriptInterface
     fun getDevice(): String {

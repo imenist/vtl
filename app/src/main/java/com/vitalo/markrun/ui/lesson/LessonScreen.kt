@@ -229,7 +229,21 @@ private fun TopBarContent(
 
         AdGamePlayButton(
             modifier = Modifier.padding(end = 6.dp),
-            onTap = { onNavigateToWebGame("game") }
+            onTap = { 
+                val jumpType = com.vitalo.markrun.common.ab.AbConfigDataRepo.getH5AdLinkJump()
+                if (jumpType == "1") {
+                    onNavigateToWebGame("game") 
+                } else {
+                    val link = com.vitalo.markrun.common.ab.AbConfigDataRepo.getH5AdEntryLinkControl()
+                    try {
+                        navController.context.startActivity(
+                            android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link))
+                        )
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
         )
 
         RulesButton(onClick = onTapEarnRules)

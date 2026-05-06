@@ -340,6 +340,60 @@ object AbConfigDataRepo : JsonCacheDataRepo<AbConfigResponse>(VitaloApp.getInsta
         }
     """.trimIndent()
 
+    private var cachedH5AdEntryLinkControl: String? = null
+    private var cachedDailyTaskH5AdLinks: List<String>? = null
+
+    private fun parseMultiLinkString(raw: String): List<String> {
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty()) return emptyList()
+        return trimmed.split("\\s+".toRegex()).filter { it.isNotEmpty() }
+    }
+
+    fun getH5TaskAdConfig(): com.vitalo.markrun.common.ab.impl.H5TaskAdConfig {
+        val config = getCurrentConfig(AbSidTable.H5_TASK_AD) as? com.vitalo.markrun.common.ab.impl.H5TaskAdConfig
+        return config ?: com.vitalo.markrun.common.ab.impl.H5TaskAdConfig()
+    }
+
+    fun getH5AdEntryLinkControl(): String {
+        cachedH5AdEntryLinkControl?.let { return it }
+        val defaultLink = "https://bj6.puzzgo5.lol/?portal=1843"
+        val cfg = getH5TaskAdConfig()
+        val links = parseMultiLinkString(cfg.h5AdEntryLinkControl)
+        if (links.isEmpty()) return defaultLink
+        val chosen = links.randomOrNull() ?: links[0]
+        cachedH5AdEntryLinkControl = chosen
+        return chosen
+    }
+
+    fun getDailyTaskH5AdLinksForSession(): List<String> {
+        cachedDailyTaskH5AdLinks?.let { return it }
+        val defaultLink = "https://three.combatarenaelite.com/LY/10586/"
+        val cfg = getH5TaskAdConfig()
+        val allLinks = parseMultiLinkString(cfg.dailyTaskH5AdLink)
+        val needCount = maxOf(1, cfg.taskH5AdLinkNum)
+        if (allLinks.isEmpty()) {
+            val list = listOf(defaultLink)
+            cachedDailyTaskH5AdLinks = list
+            return list
+        }
+        val chosen = if (allLinks.size <= needCount) {
+            allLinks
+        } else {
+            allLinks.shuffled().take(needCount)
+        }
+        cachedDailyTaskH5AdLinks = chosen
+        return chosen
+    }
+
+    fun getDailyTaskH5AdLink(index: Int): String? {
+        val list = getDailyTaskH5AdLinksForSession()
+        return if (index in list.indices) list[index] else list.firstOrNull()
+    }
+
+    fun getH5AdLinkJump(): String {
+        return getH5TaskAdConfig().h5AdLinkJump
+    }
+
     fun getWithDrawConfig(): WithDrawConfig {
         val config = getCurrentConfig(AbSidTable.WITHDRAW) as? WithDrawConfig
         if (config != null && !config.outJson.isNullOrBlank()) {
