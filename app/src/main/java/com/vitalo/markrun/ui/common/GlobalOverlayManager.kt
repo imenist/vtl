@@ -27,7 +27,9 @@ object GlobalOverlayManager {
         private set
 
     fun showSignInOverlay() {
-        showSignIn = true
+        if (com.vitalo.markrun.service.UserGuideManager.shouldShowCheckinGuide()) {
+            showSignIn = true
+        }
     }
 
     fun dismissSignInOverlay() {
@@ -35,11 +37,26 @@ object GlobalOverlayManager {
     }
 
     fun showSpinWheelOverlay() {
-        showSpinWheel = true
+        if (com.vitalo.markrun.service.UserGuideManager.shouldShowWheelGuide()) {
+            showSpinWheel = true
+        }
     }
 
     fun dismissSpinWheelOverlay() {
         showSpinWheel = false
+    }
+
+    var showFlipCard by mutableStateOf(false)
+        private set
+
+    fun showFlipCardOverlay() {
+        if (com.vitalo.markrun.service.UserGuideManager.canTriggerFlipCard()) {
+            showFlipCard = true
+        }
+    }
+
+    fun dismissFlipCardOverlay() {
+        showFlipCard = false
     }
 
     fun showCoinArrivedOverlay(amount: Int) {

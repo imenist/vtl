@@ -19,6 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -46,11 +47,19 @@ class RunningViewModel @Inject constructor(
     private val locationService: LocationService,
     private val runningRecordDao: RunningRecordDao,
     private val runningPointDao: RunningPointDao,
-    private val userManager: UserManager
+    private val userManager: UserManager,
+    private val appPreferences: com.vitalo.markrun.data.local.prefs.AppPreferences,
+    private val coinManager: com.vitalo.markrun.service.CoinManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RunningState.NOT_STARTED)
     val state: StateFlow<RunningState> = _state.asStateFlow()
+
+    private val _adEvent = kotlinx.coroutines.flow.MutableSharedFlow<Int>()
+    val adEvent = _adEvent.asSharedFlow()
+
+    private var event1Triggered = false
+    private var event2Triggered = false
 
     private val _locations = MutableStateFlow<List<RunningLocationPoint>>(emptyList())
     val locations: StateFlow<List<RunningLocationPoint>> = _locations.asStateFlow()
@@ -115,6 +124,8 @@ class RunningViewModel @Inject constructor(
         endTime = 0L
         totalPauseDuration = 0L
         pauseStartTime = 0L
+        event1Triggered = false
+        event2Triggered = false
 
         locationService.onLocationUpdate = { location ->
             handleLocationUpdate(location)
@@ -196,6 +207,21 @@ class RunningViewModel @Inject constructor(
 
         _currentSpeed.value = location.speed.toDouble()
         _locations.value = currentList + point
+        checkMilestones()
+    }
+
+    private fun checkMilestones() {
+        val distKm = _distance.value / 1000.0
+        val durationMins = _duration.value / 60.0
+
+        if (!event1Triggered && (distKm >= 1.0 || durationMins >= 10.0)) {
+            event1Triggered = true
+            viewModelScope.launch { _adEvent.emit(com.vitalo.markrun.ad.Ads.REWARD_EVENT_POINT_1) }
+        }
+        if (!event2Triggered && (distKm >= 2.0 || durationMins >= 20.0)) {
+            event2Triggered = true
+            viewModelScope.launch { _adEvent.emit(com.vitalo.markrun.ad.Ads.REWARD_EVENT_POINT_2) }
+        }
     }
 
     private fun startTimer() {
@@ -206,6 +232,7 @@ class RunningViewModel @Inject constructor(
                 if (_state.value == RunningState.RUNNING) {
                     val elapsed = System.currentTimeMillis() - startTime - totalPauseDuration
                     _duration.value = elapsed / 1000.0
+                    checkMilestones()
                 }
             }
         }
@@ -284,6 +311,18 @@ class RunningViewModel @Inject constructor(
         return Triple(low, moderate, high)
     }
 
+    private val dailyLimit: Int
+        get() {
+            val abLimit = (com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.KCAL_LIMIT) as? com.vitalo.markrun.common.ab.impl.KcalLimitConfig)?.dailyRuningKcalLimit ?: 100
+            val sdf = SimpleDateFormat("yyyyMMdd", Locale.US)
+            val todayKey = sdf.format(Date())
+            val status = appPreferences.getCodable("DailyTaskStatus_$todayKey", com.vitalo.markrun.data.remote.model.DailyTaskStatus::class.java)
+            if (status?.upRunKcalLimitClaimed == true) {
+                return 300
+            }
+            return abLimit
+        }
+
     private suspend fun saveToLocalStorage(): Long? {
         val locs = _locations.value
         if (locs.isEmpty()) return null
@@ -292,6 +331,14 @@ class RunningViewModel @Inject constructor(
         val last = locs.last()
         val (low, moderate, high) = calculateIntensityTimes()
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+        val config = com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.KCAL_LIMIT) as? com.vitalo.markrun.common.ab.impl.KcalLimitConfig
+        val onePointKcal = config?.pointKcalNumber ?: 1
+        var coins = 0
+        if (onePointKcal > 0) {
+            val thisCoin = (activeKcal / onePointKcal).toInt()
+            coins = coinManager.addCoinWithDailyLimit(thisCoin, dailyLimit, "running_finish")
+        }
 
         val record = RunningRecord(
             date = dateFormat.format(Date(startTime)),
@@ -310,7 +357,7 @@ class RunningViewModel @Inject constructor(
             highIntensityTime = high,
             imagePath = null,
             fragmentsCount = 0,
-            coins = 0,
+            coins = coins,
             adCoins = null
         )
 

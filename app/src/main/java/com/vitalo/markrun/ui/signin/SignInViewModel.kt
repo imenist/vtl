@@ -59,13 +59,64 @@ class SignInViewModel @Inject constructor(
         _claimedChests.value = claimed
     }
 
+    private fun getDailySignCfg(): com.vitalo.markrun.common.ab.impl.SignRewardConfig? {
+        if (appPreferences.getBoolean("SignInFirstRoundConfigSaved")) {
+            val json = appPreferences.getString("SignInFirstRoundDailySignCfg")
+            if (!json.isNullOrEmpty()) {
+                return com.vitalo.markrun.util.MmkvUtils.gson.fromJson(json, com.vitalo.markrun.common.ab.impl.SignRewardConfig::class.java)
+            }
+        }
+        return com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.SIGN_REWARD) as? com.vitalo.markrun.common.ab.impl.SignRewardConfig
+    }
+    
+    private fun saveFirstRoundConfig() {
+        val cfg = com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.SIGN_REWARD) as? com.vitalo.markrun.common.ab.impl.SignRewardConfig
+        if (cfg != null) {
+            appPreferences.setString("SignInFirstRoundDailySignCfg", com.vitalo.markrun.util.MmkvUtils.gson.toJson(cfg))
+        }
+        val withdrawCfg = com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.WITHDRAW_GRADE) as? com.vitalo.markrun.common.ab.impl.WithdrawGradeConfig
+        if (withdrawCfg != null) {
+            appPreferences.setString("FrozenWithdrawGradeConfig", com.vitalo.markrun.util.MmkvUtils.gson.toJson(withdrawCfg))
+        }
+        appPreferences.setBoolean("SignInFirstRoundConfigSaved", true)
+    }
+
+    private fun isFirstRoundSignIn(): Boolean {
+        val cycleStart = appPreferences.getLong("SignInCycleStartDate")
+        if (cycleStart == 0L) return true
+        val today = Calendar.getInstance()
+        val startCal = Calendar.getInstance().apply { timeInMillis = cycleStart }
+        return daysBetween(startCal, today) < cycleDays
+    }
+
     private fun initializeSignInData() {
-        val cashDays = listOf(7, 14, 21, 28) // Example cash reward days
+        val isFirstRound = isFirstRoundSignIn()
+        
+        if (isFirstRound && !appPreferences.getBoolean("SignInFirstRoundConfigSaved")) {
+            saveFirstRoundConfig()
+        }
+        
+        val cfg = getDailySignCfg()
+        val signCashDayStr = cfg?.signCashDay ?: ""
+        val cashDays = signCashDayStr.split("[,，]".toRegex())
+            .mapNotNull { it.trim().toIntOrNull() }
+            .filter { it in 1..cycleDays }
+            .take(3)
+            
+        val abConfig = com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.WITHDRAW_ENABLE) as? com.vitalo.markrun.common.ab.impl.WithdrawEnableConfig
+        val isWithdrawEnabled = abConfig?.smallWithdrawEnable == "1" || abConfig?.largeWithdrawEnable == "1"
+
+        val shouldProvideCashReward = isFirstRound && isWithdrawEnabled
+
         val data = (1..cycleDays).map { day ->
-            val isCash = cashDays.contains(day)
+            val isCash = shouldProvideCashReward && cashDays.contains(day)
             SignInModel(
                 day = day,
-                rewardAmount = if (day % 7 == 0) 300 else 100,
+                rewardAmount = if (day == 7 || day == 14 || day == 21 || day == 28) {
+                    cfg?.sign7Coin ?: 200
+                } else {
+                    cfg?.sign1Coin ?: 100
+                },
                 rewardType = if (isCash) SignInRewardType.CASH else SignInRewardType.COIN,
                 cashAmount = if (isCash) 1.0 else null // Dummy cash amount
             )
@@ -200,8 +251,10 @@ class SignInViewModel @Inject constructor(
     private fun performClaimChest(requiredDays: Int) {
         appPreferences.setBoolean("SignInChestClaimed_$requiredDays", true)
         updateClaimedChests()
-        coinManager.addCoin(100) // Default chest reward
-        com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(100)
+        val cfg = getDailySignCfg()
+        val streakCoin = cfg?.signStreakCoin ?: 100
+        coinManager.addCoin(streakCoin)
+        com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(streakCoin)
         updateCurrentStatus()
     }
 

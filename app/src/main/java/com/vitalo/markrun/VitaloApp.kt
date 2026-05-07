@@ -1,11 +1,15 @@
 package com.vitalo.markrun
 
+import android.app.Activity
+import android.os.Bundle
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.util.Log
 import com.applovin.sdk.AppLovinMediationProvider
 import com.applovin.sdk.AppLovinSdk
 import com.applovin.sdk.AppLovinSdkInitializationConfiguration
+import com.vitalo.markrun.ad.AdManager
+import com.vitalo.markrun.ad.Ads
 import com.vitalo.markrun.common.ab.AbConfigDataRepo
 import com.vitalo.markrun.common.statistic.StatSdkManger
 import com.vitalo.markrun.config.AppConfig
@@ -13,9 +17,16 @@ import com.vitalo.markrun.config.DevConfig
 import com.vitalo.markrun.config.ProductConfig
 import com.vitalo.markrun.util.MmkvUtils
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class VitaloApp : Application() {
+
+    private var startedActivityCount = 0
+    private var isColdLaunch = true
+    private var currentActivity: Activity? = null
 
     companion object {
         private lateinit var instance: VitaloApp
@@ -28,6 +39,59 @@ class VitaloApp : Application() {
         installConfig()
         initSdk()
         initAbRepo()
+        registerLifecycleCallbacks()
+    }
+
+    private fun registerLifecycleCallbacks() {
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+
+            override fun onActivityStarted(activity: Activity) {
+                currentActivity = activity
+                startedActivityCount++
+                if (startedActivityCount == 1) {
+                    onAppEnterForeground()
+                }
+            }
+
+            override fun onActivityResumed(activity: Activity) {
+                currentActivity = activity
+            }
+
+            override fun onActivityPaused(activity: Activity) {
+                if (currentActivity === activity) {
+                    currentActivity = null
+                }
+            }
+
+            override fun onActivityStopped(activity: Activity) {
+                startedActivityCount--
+                if (startedActivityCount == 0) {
+                    onAppEnterBackground()
+                }
+            }
+
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+
+            override fun onActivityDestroyed(activity: Activity) {}
+        })
+    }
+
+    private fun onAppEnterForeground() {
+        Log.d("VitaloApp", "App enters foreground")
+        if (isColdLaunch) {
+            isColdLaunch = false
+            // 冷启动已经在 SplashViewModel 里处理开屏广告了
+        } else {
+            // 热启动，展示热启动开屏广告
+            currentActivity?.let { activity ->
+                AdManager.showAd(activity, Ads.SPLASH_HOT_START)
+            }
+        }
+    }
+
+    private fun onAppEnterBackground() {
+        Log.d("VitaloApp", "App enters background")
     }
 
     private fun initSdk() {

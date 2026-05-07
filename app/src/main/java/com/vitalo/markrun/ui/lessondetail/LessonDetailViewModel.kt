@@ -33,7 +33,9 @@ data class MediaItem(
 
 @HiltViewModel
 class LessonDetailViewModel @Inject constructor(
-    private val repository: TrainingRepository
+    private val repository: TrainingRepository,
+    val coinManager: com.vitalo.markrun.service.CoinManager,
+    val appPreferences: com.vitalo.markrun.data.local.prefs.AppPreferences
 ) : ViewModel() {
 
     private val _lesson = MutableStateFlow<Lesson?>(null)

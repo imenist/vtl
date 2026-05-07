@@ -46,6 +46,7 @@ fun RestScreen(
     onFinish: () -> Unit,
     onSkip: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var remainingTime by remember { mutableIntStateOf(initialTime) }
     var totalTime by remember { mutableIntStateOf(initialTime) }
     var canAddTime by remember { mutableStateOf(true) }
@@ -117,7 +118,16 @@ fun RestScreen(
                         .clickable(
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() }
-                        ) { onSkip() }
+                        ) {
+                            val act = context as? android.app.Activity
+                            if (act != null) {
+                                com.vitalo.markrun.ad.AdManager.showAd(act, com.vitalo.markrun.ad.Ads.REWARD_COURSE_REST) {
+                                    onSkip()
+                                }
+                            } else {
+                                onSkip()
+                            }
+                        }
                 ) {
                     Box(
                         modifier = Modifier

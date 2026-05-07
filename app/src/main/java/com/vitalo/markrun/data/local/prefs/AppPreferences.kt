@@ -9,7 +9,7 @@ import javax.inject.Singleton
 
 @Singleton
 class AppPreferences @Inject constructor(
-    @ApplicationContext context: Context
+    @ApplicationContext private val context: Context
 ) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("vitalo_prefs", Context.MODE_PRIVATE)
@@ -23,6 +23,7 @@ class AppPreferences @Inject constructor(
         const val KEY_DISTINCT_ID = "distinctId"
         const val KEY_DEVICE_ID = "deviceId"
         const val KEY_INSTALL_DATE = "installDate"
+        const val KEY_WITHDRAW_REVIEW_DIALOG_EVER_SHOWN = "withdrawReviewDialogEverShown"
         const val KEY_STEP_GOAL = "stepGoal"
         const val KEY_AB_TEST_RESULT = "abTestResult"
         const val KEY_SELECTED_DISTANCE_UNIT = "selectedDistanceUnit"
@@ -77,5 +78,18 @@ class AppPreferences @Inject constructor(
             setString(KEY_DISTINCT_ID, id)
         }
         return id
+    }
+
+    fun getInstallDate(): Long {
+        var installTimestamp = getLong(KEY_INSTALL_DATE)
+        if (installTimestamp <= 0) {
+            try {
+                val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                installTimestamp = packageInfo.firstInstallTime
+                setLong(KEY_INSTALL_DATE, installTimestamp)
+            } catch (_: Exception) {
+            }
+        }
+        return installTimestamp
     }
 }

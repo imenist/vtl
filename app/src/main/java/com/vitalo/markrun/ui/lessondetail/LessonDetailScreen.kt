@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,9 +68,34 @@ fun LessonDetailScreen(
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
+    var showDailyGiftDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var showDailyGiftCoinNum by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(0) }
+    val appPreferences = viewModel.appPreferences
+    val coinManager = viewModel.coinManager
+
     LaunchedEffect(trainingCode) {
         if (lesson == null && !isLoading) {
             viewModel.load(trainingCode)
+        }
+        
+        val appUiSwitchConfig = com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.APP_UI_SWITCH) as? com.vitalo.markrun.common.ab.impl.AppUiSwitchConfig
+        if (appUiSwitchConfig?.dailyTrainUnlockSwitch == "1") {
+            val now = System.currentTimeMillis()
+            val lastTimestamp = appPreferences.getLong("lastLessonDetailViewDate")
+            val isSameDay = if (lastTimestamp > 0) {
+                val cal1 = java.util.Calendar.getInstance().apply { timeInMillis = now }
+                val cal2 = java.util.Calendar.getInstance().apply { timeInMillis = lastTimestamp }
+                cal1.get(java.util.Calendar.YEAR) == cal2.get(java.util.Calendar.YEAR) &&
+                cal1.get(java.util.Calendar.DAY_OF_YEAR) == cal2.get(java.util.Calendar.DAY_OF_YEAR)
+            } else false
+            
+            if (!isSameDay) {
+                showDailyGiftDialog = true
+                appPreferences.setLong("lastLessonDetailViewDate", now)
+                val participated = appPreferences.getBoolean("dailyTrainingParticipated")
+                showDailyGiftCoinNum = if (participated) 50 else 100
+                coinManager.addCoin(showDailyGiftCoinNum)
+            }
         }
     }
 
@@ -200,6 +226,7 @@ fun LessonDetailScreen(
                         
                         viewModel.checkAndDownloadAllMedia(context) { success ->
                             if (success) {
+                                appPreferences.setBoolean("dailyTrainingParticipated", true)
                                 com.vitalo.markrun.data.LessonDataStore.currentActions = lesson?.mountActions ?: emptyList()
                                 navController.navigate(
                                     "follow_along/$trainingCode/${lesson?.code ?: ""}"
@@ -245,6 +272,17 @@ fun LessonDetailScreen(
                     )
                 }
             }
+        }
+
+        if (showDailyGiftDialog) {
+            com.vitalo.markrun.ui.common.TrainingPackageDialog(
+                coinNum = showDailyGiftCoinNum,
+                titleText = "Daily Gift",
+                claimButtonText = "Claim",
+                showAdIcon = false,
+                onTapClaim = { showDailyGiftDialog = false },
+                onTapClose = { showDailyGiftDialog = false }
+            )
         }
     }
 }

@@ -138,8 +138,10 @@ fun EarnRulesDialog(onClose: () -> Unit) {
                                 withStyle(SpanStyle(color = Color.Black)) { append("More activities to earn CaloCoins! Such as daily sign-in, golden eggs, slots, etc.") }
                             },
                             buildAnnotatedString {
+                                val config = com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.KCAL_LIMIT) as? com.vitalo.markrun.common.ab.impl.KcalLimitConfig
+                                val onePointKcal = config?.pointKcalNumber ?: 1
                                 withStyle(SpanStyle(fontWeight = FontWeight.Black, color = Color.Black)) { append("• ") }
-                                withStyle(SpanStyle(color = Color.Black)) { append("Other ways to earn CaloCoins include exercising or running; 1 kcal = 1 CaloCoin.") }
+                                withStyle(SpanStyle(color = Color.Black)) { append("Other ways to earn CaloCoins include exercising or running; $onePointKcal kcal = 1 CaloCoin.") }
                             }
                         )
                     )

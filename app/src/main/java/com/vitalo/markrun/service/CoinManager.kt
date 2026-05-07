@@ -52,4 +52,17 @@ class CoinManager @Inject constructor(
         appPreferences.setInt("local_coin_balance", newVal)
         _coinBalance.value = _coinBalance.value + amount
     }
+
+    fun addCoinWithDailyLimit(amount: Int, limit: Int, taskKey: String): Int {
+        val sdf = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US)
+        val todayKey = sdf.format(java.util.Date())
+        val prefKey = "${taskKey}_$todayKey"
+        val todayTotal = appPreferences.getInt(prefKey)
+        val remain = limit - todayTotal
+        if (remain <= 0) return 0
+        val actualAdd = minOf(amount, remain)
+        appPreferences.setInt(prefKey, todayTotal + actualAdd)
+        addCoin(actualAdd)
+        return actualAdd
+    }
 }

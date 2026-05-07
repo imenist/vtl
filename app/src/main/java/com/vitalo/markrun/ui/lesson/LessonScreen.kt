@@ -119,6 +119,12 @@ fun LessonScreen(
                             )
                         }
 
+                        item {
+                            AdHomeFixedBanner(
+                                onTap = { onNavigateToWebGame("homeFix") }
+                            )
+                        }
+
                         itemsIndexed(subjects) { _, subject ->
                             SubjectSectionView(
                                 subject = subject,
@@ -163,7 +169,9 @@ private fun LessonHeader(
         ) {
             Spacer(modifier = Modifier.height(72.dp))
 
-            StepCounterView()
+            StepCounterView(
+                onFlipCard = { com.vitalo.markrun.ui.common.GlobalOverlayManager.showFlipCardOverlay() }
+            )
 
             Spacer(modifier = Modifier.height(10.dp))
         }
@@ -412,6 +420,42 @@ private fun AdLuckySpinButton(
                 )
                 .padding(horizontal = 6.dp, vertical = 2.dp)
         )
+    }
+}
+
+@Composable
+private fun AdHomeFixedBanner(
+    modifier: Modifier = Modifier,
+    onTap: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .height(80.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Brush.horizontalGradient(listOf(Color(0xFFFF9A9A), Color(0xFFFF5252))))
+            .clickable { onTap() },
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Watch & Earn",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                fontStyle = FontStyle.Italic
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Image(
+                painter = painterResource(id = R.drawable.ic_exchange_ad_coin),
+                contentDescription = null,
+                modifier = Modifier.size(30.dp)
+            )
+        }
     }
 }
 

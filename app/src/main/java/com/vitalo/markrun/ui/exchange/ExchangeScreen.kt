@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.vitalo.markrun.data.mock.Card
 import com.vitalo.markrun.data.mock.MockDataProvider
-import com.vitalo.markrun.data.mock.WithdrawalAmount
+import com.vitalo.markrun.data.remote.model.WithdrawalAmount
 import com.vitalo.markrun.navigation.Screen
 import com.vitalo.markrun.ui.collection.SettingSectionView
 import com.vitalo.markrun.ui.common.CoinBalanceView
@@ -65,6 +65,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import android.app.Activity
 import com.vitalo.markrun.ad.AdManager
 import com.vitalo.markrun.ad.Ads
+import com.vitalo.markrun.common.ab.AbConfigDataRepo.context
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // region ──── Stateful Wrapper ────
@@ -76,6 +77,12 @@ fun ExchangeScreen(
     viewModel: ExchangeViewModel = hiltViewModel()
 ) {
     val coinBalance by viewModel.coinBalance.collectAsState()
+    val withdrawalAmounts by viewModel.withdrawalAmounts.collectAsState()
+    val shouldShowCountdown by viewModel.shouldShowCountdown.collectAsState()
+    val countdownText by viewModel.countdownText.collectAsState()
+    
+    val appUiSwitchConfig = com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.APP_UI_SWITCH) as? com.vitalo.markrun.common.ab.impl.AppUiSwitchConfig
+    val walletPageOrder = appUiSwitchConfig?.walletPageOrder == "1"
 
     ExchangeScreenContent(
         coinBalance = coinBalance.toInt(),
@@ -83,17 +90,21 @@ fun ExchangeScreen(
         adEnable = true,
         adReward = 200,
         showWithdrawl = true,
-        withdrawalAmounts = MockDataProvider.withdrawalAmounts.filter { !it.isExchanged }.take(4),
+        withdrawalAmounts = withdrawalAmounts,
         totalRewardedAdViewCount = 12,
         totalSignDays = 7,
-        shouldShowCountdown = true,
-        countdownText = "18:32:45",
+        shouldShowCountdown = shouldShowCountdown,
+        countdownText = countdownText,
         cards = MockDataProvider.cards,
         fragmentProgress = MockDataProvider.fragmentProgress,
+        walletPageOrder = walletPageOrder,
         onFaqClick = { com.vitalo.markrun.ui.common.GlobalOverlayManager.showConversionRulesOverlay(1000.0) },
         onRecordClick = { navController.navigate(Screen.WithdrawRecord.route) },
         onWatchAd = { reward ->
             viewModel.earnAdReward(reward)
+        },
+        onFlipCard = {
+            com.vitalo.markrun.ui.common.GlobalOverlayManager.showFlipCardOverlay()
         }
     )
 }
@@ -118,9 +129,11 @@ fun ExchangeScreenContent(
     countdownText: String,
     @Suppress("UNUSED_PARAMETER") cards: List<Card>,
     @Suppress("UNUSED_PARAMETER") fragmentProgress: Map<Int, Int>,
+    walletPageOrder: Boolean = false,
     onFaqClick: () -> Unit = {},
     onRecordClick: () -> Unit = {},
     onWatchAd: (Int) -> Unit = {},
+    onFlipCard: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -167,62 +180,77 @@ fun ExchangeScreenContent(
                 onRecordClick = onRecordClick
             )
 
-            // Wallet card
-            if (adEnable) {
-                MyWalletWithAdView(
-                    coinBalance = coinBalance,
-                    coinExchangeRate = coinExchangeRate,
-                    adReward = adReward,
-                    screenWidth = screenWidthDp,
-                    onWatchAdClick = {
-                        onWatchAd(adReward)
-                    },
-                    modifier = Modifier.padding(top = 22.dp)
-                )
-            } else {
-                MyWalletView(
-                    coinBalance = coinBalance,
-                    screenWidth = screenWidthDp,
-                    modifier = Modifier.padding(top = 38.75.dp)
-                )
+            val walletCard = @Composable {
+                if (adEnable) {
+                    MyWalletWithAdView(
+                        coinBalance = coinBalance,
+                        coinExchangeRate = coinExchangeRate,
+                        adReward = adReward,
+                        screenWidth = screenWidthDp,
+                        onWatchAdClick = {
+                            onWatchAd(adReward)
+                        },
+                        modifier = Modifier.padding(top = 22.dp)
+                    )
+                } else {
+                    MyWalletView(
+                        coinBalance = coinBalance,
+                        screenWidth = screenWidthDp,
+                        modifier = Modifier.padding(top = 38.75.dp)
+                    )
+                }
             }
 
-            if (showWithdrawl) {
-                Column(
-                    modifier = Modifier
-                        .padding(top = 27.dp)
-                        .fillMaxWidth()
-                        .background(
-                            Color.White,
-                            RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+            val withdrawCard = @Composable {
+                if (showWithdrawl) {
+                    Column(
+                        modifier = Modifier
+                            .padding(top = 27.dp)
+                            .fillMaxWidth()
+                            .background(
+                                Color.White,
+                                RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                            )
+                    ) {
+                        WithdrawlView(
+                            amounts = withdrawalAmounts,
+                            totalRewardedAdViewCount = totalRewardedAdViewCount,
+                            totalSignDays = totalSignDays,
+                            shouldShowCountdown = shouldShowCountdown,
+                            countdownText = countdownText,
+                            screenWidth = screenWidthDp,
+                            screenHeight = screenHeightDp,
+                            coinBalance = coinBalance,
+                            onFlipCard = onFlipCard
                         )
-                ) {
-                    WithdrawlView(
-                        amounts = withdrawalAmounts,
-                        totalRewardedAdViewCount = totalRewardedAdViewCount,
-                        totalSignDays = totalSignDays,
-                        shouldShowCountdown = shouldShowCountdown,
-                        countdownText = countdownText,
+
+                        // "Withdrawal Method" divider
+                        WithdrawalMethodDivider(
+                            modifier = Modifier.padding(top = 16.dp)
+                        )
+
+                        WithdrawMethodsView(
+                            modifier = Modifier.padding(top = 16.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(124.dp))
+                    }
+                } else {
+                    RedeemFragmentView(
+                        coinBalance = coinBalance,
+                        adEnable = adEnable,
                         screenWidth = screenWidthDp,
-                        screenHeight = screenHeightDp
+                        onFlipCard = onFlipCard
                     )
-
-                    // "Withdrawal Method" divider
-                    WithdrawalMethodDivider(
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
-
-                    WithdrawMethodsView(
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(124.dp))
                 }
+            }
+
+            if (walletPageOrder) {
+                withdrawCard()
+                walletCard()
             } else {
-                RedeemFragmentView(
-                    adEnable = adEnable,
-                    screenWidth = screenWidthDp
-                )
+                walletCard()
+                withdrawCard()
             }
         }
     }
@@ -572,8 +600,11 @@ private fun WithdrawlView(
     countdownText: String,
     screenWidth: Dp,
     screenHeight: Dp,
+    coinBalance: Int = 0,
+    onFlipCard: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     Column(modifier = modifier.fillMaxWidth()) {
         SettingSectionView(
             title = "Withdraw",
@@ -602,7 +633,25 @@ private fun WithdrawlView(
                         totalRewardedAdViewCount = totalRewardedAdViewCount,
                         totalSignDays = totalSignDays,
                         shouldShowCountdown = shouldShowCountdown,
-                        countdownText = countdownText
+                        countdownText = countdownText,
+                        onWithdrawClick = {
+                            if (coinBalance < (displayAmounts[rowIndex].coinAmountV2 ?: 0.0)) {
+                                onFlipCard()
+                            } else {
+                            val activity = context as? android.app.Activity
+                            if (activity != null) {
+                                com.vitalo.markrun.ad.AdManager.showAd(
+                                    activity = activity,
+                                    virtualId = com.vitalo.markrun.ad.Ads.REWARD_SMALL_WITHDRAW,
+                                    onComplete = { rewarded ->
+                                        if (rewarded) {
+                                            /* TODO: Withdraw */
+                                        }
+                                    }
+                                )
+                            }
+                            }
+                        }
                     )
                     if (rowIndex + 1 < displayAmounts.size) {
                         WithdrawalCellView(
@@ -611,7 +660,25 @@ private fun WithdrawlView(
                             totalRewardedAdViewCount = totalRewardedAdViewCount,
                             totalSignDays = totalSignDays,
                             shouldShowCountdown = shouldShowCountdown,
-                            countdownText = countdownText
+                            countdownText = countdownText,
+                            onWithdrawClick = {
+                                if (coinBalance < (displayAmounts[rowIndex + 1].coinAmountV2 ?: 0.0)) {
+                                    onFlipCard()
+                                } else {
+                                val activity = context as? android.app.Activity
+                            if (activity != null) {
+                                com.vitalo.markrun.ad.AdManager.showAd(
+                                    activity = activity,
+                                    virtualId = com.vitalo.markrun.ad.Ads.REWARD_SMALL_WITHDRAW,
+                                    onComplete = { rewarded ->
+                                        if (rewarded) {
+                                            /* TODO: Withdraw */
+                                        }
+                                    }
+                                )
+                            }
+                                }
+                            }
                         )
                     } else {
                         Spacer(modifier = Modifier.width(cellWidth))
@@ -636,6 +703,7 @@ private fun WithdrawalCellView(
     totalSignDays: Int,
     shouldShowCountdown: Boolean,
     countdownText: String,
+    onWithdrawClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val cellAspectRatio = 162.0f / 134.0f
@@ -651,26 +719,27 @@ private fun WithdrawalCellView(
     val underReview = isQuick && false // TODO: check review state
     val highlight = isQuick && !isExchanged
     val hasWatchAd = (amount.watchAdTimes ?: 0) > 0
-    val hasSignDays = amount.limitSignDays > 0
+    val hasSignDays = (amount.limitSignDays ?: 0) > 0
 
     // Format currency
     val formattedCurrency = remember(amount.realCurrency) {
-        if (amount.realCurrency < 1.0) {
-            "$${String.format(Locale.US, "%.2f", amount.realCurrency)}"
+        val currency = amount.realCurrency ?: 0.0
+        if (currency < 1.0) {
+            "$${String.format(Locale.US, "%.2f", currency)}"
         } else {
-            "$${amount.realCurrency.toInt()}"
+            "$${currency.toInt()}"
         }
     }
     val coinAmountText = remember(amount.coinAmountV2) {
-        NumberFormat.getIntegerInstance().format(amount.coinAmountV2.toInt())
+        NumberFormat.getIntegerInstance().format((amount.coinAmountV2 ?: 0.0).toInt())
     }
 
     // Button text logic
     val buttonText = when {
         hasWatchAd && totalRewardedAdViewCount < (amount.watchAdTimes ?: 0) ->
             "$totalRewardedAdViewCount/${amount.watchAdTimes}"
-        hasSignDays && totalSignDays < amount.limitSignDays ->
-            "$totalSignDays/${amount.limitSignDays}"
+        hasSignDays && totalSignDays < (amount.limitSignDays ?: 0) ->
+            "$totalSignDays/${amount.limitSignDays ?: 0}"
         isExchanged -> "Received"
         underReview -> "Pending..."
         else -> "CASH OUT"
@@ -775,7 +844,7 @@ private fun WithdrawalCellView(
                 // Sign-in days requirement
                 if (hasSignDays) {
                     Text(
-                        text = "SIGN IN ${amount.limitSignDays} DAYS",
+                        text = "SIGN IN ${amount.limitSignDays ?: 0} DAYS",
                         fontSize = 9.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF7D4705),
@@ -865,7 +934,7 @@ private fun WithdrawalCellView(
                     }
                 )
                 .alpha(if (isExchanged) 0.2f else 1f)
-                .clickable(enabled = !isExchanged) { /* TODO: Withdraw */ },
+                .clickable(enabled = !isExchanged) { onWithdrawClick() },
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -983,8 +1052,10 @@ private fun PaymentMethodRow(icons: List<Int>) {
 @Composable
 @Suppress("UNUSED_PARAMETER")
 private fun RedeemFragmentView(
+    coinBalance: Int,
     adEnable: Boolean,
     screenWidth: Dp,
+    onFlipCard: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -1128,7 +1199,13 @@ private fun RedeemFragmentView(
                         .size(width = 230.dp, height = 56.dp)
                         .clip(RoundedCornerShape(28.dp))
                         .background(Color.Black)
-                        .clickable { /* TODO: Check coin >= 100 */ },
+                        .clickable {
+                            if (coinBalance < 100) {
+                                onFlipCard()
+                            } else {
+                                /* TODO: Check coin >= 100 */
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -1164,7 +1241,30 @@ private fun ExchangeScreenWithdrawlPreview() {
             adEnable = true,
             adReward = 200,
             showWithdrawl = true,
-            withdrawalAmounts = MockDataProvider.withdrawalAmounts.filter { !it.isExchanged }.take(4),
+            withdrawalAmounts = MockDataProvider.withdrawalAmounts.filter { !it.isExchanged }.take(4).map {
+                com.vitalo.markrun.data.remote.model.WithdrawalAmount(
+                    cashOutId = it.cashOutId,
+                    prodName = it.prodName,
+                    filterId = it.filterId,
+                    coinCode = it.coinCode,
+                    realCurrency = it.realCurrency,
+                    withdrawCode = it.withdrawCode,
+                    withdrawType = it.withdrawType,
+                    state = it.state,
+                    limitPerUser = it.limitPerUser,
+                    limitUserPerDay = it.limitUserPerDay,
+                    coinAmountV2 = it.coinAmountV2,
+                    commonState = it.commonState,
+                    limitPerDay = it.limitPerDay,
+                    coinAmount = it.coinAmount,
+                    limitBreakTimes = it.limitBreakTimes,
+                    limitSignDays = it.limitSignDays,
+                    limitClockDays = it.limitClockDays,
+                    watchAdTimes = it.watchAdTimes,
+                    crackEggFragments = it.crackEggFragments,
+                    isExchanged = it.isExchanged
+                )
+            },
             totalRewardedAdViewCount = 12,
             totalSignDays = 7,
             shouldShowCountdown = true,
@@ -1219,7 +1319,30 @@ private fun WithdrawalCellPreview() {
             horizontalArrangement = Arrangement.spacedBy(11.dp)
         ) {
             WithdrawalCellView(
-                amount = MockDataProvider.withdrawalAmounts[0],
+                amount = MockDataProvider.withdrawalAmounts[0].let {
+                    com.vitalo.markrun.data.remote.model.WithdrawalAmount(
+                        cashOutId = it.cashOutId,
+                        prodName = it.prodName,
+                        filterId = it.filterId,
+                        coinCode = it.coinCode,
+                        realCurrency = it.realCurrency,
+                        withdrawCode = it.withdrawCode,
+                        withdrawType = it.withdrawType,
+                        state = it.state,
+                        limitPerUser = it.limitPerUser,
+                        limitUserPerDay = it.limitUserPerDay,
+                        coinAmountV2 = it.coinAmountV2,
+                        commonState = it.commonState,
+                        limitPerDay = it.limitPerDay,
+                        coinAmount = it.coinAmount,
+                        limitBreakTimes = it.limitBreakTimes,
+                        limitSignDays = it.limitSignDays,
+                        limitClockDays = it.limitClockDays,
+                        watchAdTimes = it.watchAdTimes,
+                        crackEggFragments = it.crackEggFragments,
+                        isExchanged = it.isExchanged
+                    )
+                },
                 cellWidth = 162.dp,
                 totalRewardedAdViewCount = 12,
                 totalSignDays = 7,
@@ -1227,7 +1350,30 @@ private fun WithdrawalCellPreview() {
                 countdownText = "18:32:45"
             )
             WithdrawalCellView(
-                amount = MockDataProvider.withdrawalAmounts[2],
+                amount = MockDataProvider.withdrawalAmounts[2].let {
+                    com.vitalo.markrun.data.remote.model.WithdrawalAmount(
+                        cashOutId = it.cashOutId,
+                        prodName = it.prodName,
+                        filterId = it.filterId,
+                        coinCode = it.coinCode,
+                        realCurrency = it.realCurrency,
+                        withdrawCode = it.withdrawCode,
+                        withdrawType = it.withdrawType,
+                        state = it.state,
+                        limitPerUser = it.limitPerUser,
+                        limitUserPerDay = it.limitUserPerDay,
+                        coinAmountV2 = it.coinAmountV2,
+                        commonState = it.commonState,
+                        limitPerDay = it.limitPerDay,
+                        coinAmount = it.coinAmount,
+                        limitBreakTimes = it.limitBreakTimes,
+                        limitSignDays = it.limitSignDays,
+                        limitClockDays = it.limitClockDays,
+                        watchAdTimes = it.watchAdTimes,
+                        crackEggFragments = it.crackEggFragments,
+                        isExchanged = it.isExchanged
+                    )
+                },
                 cellWidth = 162.dp,
                 totalRewardedAdViewCount = 12,
                 totalSignDays = 7,

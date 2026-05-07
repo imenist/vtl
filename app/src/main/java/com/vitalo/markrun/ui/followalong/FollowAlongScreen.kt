@@ -98,11 +98,13 @@ fun FollowAlongScreen(
     // Handle completion
     LaunchedEffect(hasCompleted) {
         if (hasCompleted) {
+            val coins = viewModel.calculateCoins()
             navController.navigate(
                 Screen.WorkoutResult.createRoute(
                     duration = viewModel.totalWorkoutMinutes,
                     calorie = viewModel.totalWorkoutCalorie,
-                    hasCompleted = true
+                    hasCompleted = true,
+                    coins = coins
                 )
             ) {
                 popUpTo("follow_along/$trainingCode/$lessonCode") { inclusive = true }
@@ -270,8 +272,11 @@ fun FollowAlongScreen(
 
                     Spacer(modifier = Modifier.height(15.dp))
                     
-                    val bonusProgress by viewModel.bonusProgress.collectAsState()
-                    WorkoutBonusTimerView(progress = bonusProgress)
+                    val shouldShowTimer by viewModel.shouldShowTimer.collectAsState()
+                    if (shouldShowTimer) {
+                        val bonusProgress by viewModel.bonusProgress.collectAsState()
+                        WorkoutBonusTimerView(progress = bonusProgress)
+                    }
                 }
             }
 
@@ -485,11 +490,13 @@ fun FollowAlongScreen(
             WorkoutExitOverlay(
                 onExit = {
                     showExitConfirm = false
+                    val coins = viewModel.calculateCoins()
                     navController.navigate(
                         com.vitalo.markrun.navigation.Screen.WorkoutResult.createRoute(
                             duration = viewModel.totalWorkoutMinutes,
                             calorie = viewModel.totalWorkoutCalorie,
-                            hasCompleted = false
+                            hasCompleted = false,
+                            coins = coins
                         )
                     ) {
                         popUpTo("follow_along/$trainingCode/$lessonCode") { inclusive = true }

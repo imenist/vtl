@@ -16,7 +16,8 @@ import javax.inject.Inject
 @HiltViewModel
 class TaskViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
-    private val coinManager: CoinManager
+    private val coinManager: CoinManager,
+    private val abManager: com.vitalo.markrun.common.ab.AbManager
 ) : ViewModel() {
 
     private val _dailyTaskStatus = MutableStateFlow(DailyTaskStatus.empty())
@@ -29,14 +30,89 @@ class TaskViewModel @Inject constructor(
 
     private val chestHours = listOf(8, 12, 16, 20)
 
-    val chestReward = 50
-    private val chestAllReward = 100
-    private val runningReward = 200
-    private val trainingReward = 150
-    private val signInReward = 50
-    private val spinReward = 100
-    private val crackEggReward = 100
-    private val luckySlotReward = 100
+    val dailyRunningKcalLimit: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.KCAL_LIMIT) as? com.vitalo.markrun.common.ab.impl.KcalLimitConfig
+            return config?.dailyRuningKcalLimit ?: 100
+        }
+
+    val chestReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.limitedTimeChestRewards ?: 50
+        }
+
+    private val chestAllReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.limitedTimeChest4Rewards ?: 100
+        }
+
+    private val runningReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.run200KcalRewards ?: 200
+        }
+
+    private val trainingReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.training30MinRewards ?: 150
+        }
+
+    private val signInReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.todaySignInRewards ?: 50
+        }
+
+    private val spinReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.newUserSpin10Rewards ?: 100
+        }
+
+    private val crackEggReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.crackEgg10Rewards ?: 100
+        }
+
+    private val luckySlotReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.luckySlot10Rewards ?: 100
+        }
+
+    private val notificationReward: Int
+        get() {
+            // There's no specific AB config for notification reward in iOS right now, fallback to 50
+            return 50
+        }
+
+    private val motionUsageReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.healthPermissionsEnable ?: 50
+        }
+
+    private val upperStepConversionReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.upRunKaclLimitRewards ?: 200
+        }
+
+    private val multiDailyRelaxationReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.askAdReadRewards ?: 120
+        }
+
+    private val dailyRelaxationReward: Int
+        get() {
+            val config = abManager.getConfig(com.vitalo.markrun.common.ab.AbSidTable.TASK_REWARD) as? com.vitalo.markrun.common.ab.impl.TaskRewardConfig
+            return config?.dailyConsultAdRewards ?: 100
+        }
 
     init {
         loadAndPublishDailyTaskStatus()
@@ -56,16 +132,22 @@ class TaskViewModel @Inject constructor(
         val status = _dailyTaskStatus.value
         val tasks = mutableListOf<DailyTaskInfo>()
 
-        tasks.add(DailyTaskInfo(DailyTaskKind.NOTIFICATION, canClaim = false, claimed = status.notificationClaimed, reward = 50))
-        tasks.add(DailyTaskInfo(DailyTaskKind.MOTION_USAGE, canClaim = false, claimed = status.motionUsageClaimed, reward = 50))
+        tasks.add(DailyTaskInfo(DailyTaskKind.NOTIFICATION, canClaim = false, claimed = status.notificationClaimed, reward = notificationReward))
+        tasks.add(DailyTaskInfo(DailyTaskKind.MOTION_USAGE, canClaim = false, claimed = status.motionUsageClaimed, reward = motionUsageReward))
         tasks.add(DailyTaskInfo(DailyTaskKind.SIGN_IN, canClaim = status.signInToday && !status.signInClaimed, claimed = status.signInClaimed, reward = signInReward))
         tasks.add(DailyTaskInfo(DailyTaskKind.CHEST_ALL, canClaim = status.chestClaimed.all { it } && !status.chestAllClaimed, claimed = status.chestAllClaimed, reward = chestAllReward))
         tasks.add(DailyTaskInfo(DailyTaskKind.NEW_USER_SPIN, canClaim = status.newUserSpinCount >= 10 && !status.newUserSpinClaimed, claimed = status.newUserSpinClaimed, reward = spinReward))
         tasks.add(DailyTaskInfo(DailyTaskKind.CRACK_EGG, canClaim = status.crackEggCount >= 10 && !status.crackEggClaimed, claimed = status.crackEggClaimed, reward = crackEggReward))
         tasks.add(DailyTaskInfo(DailyTaskKind.LUCKY_SLOT, canClaim = status.luckySlotCount >= 10 && !status.luckySlotClaimed, claimed = status.luckySlotClaimed, reward = luckySlotReward))
-        tasks.add(DailyTaskInfo(DailyTaskKind.UPPER_STEP_CONVERSION, canClaim = false, claimed = status.upperStepConversionClaimed, reward = 200))
-        tasks.add(DailyTaskInfo(DailyTaskKind.MULTI_DAILY_RELAXATION, canClaim = status.multiDailyRelaxationCompletedCount >= 3 && !status.multiDailyRelaxationRewardClaimed, claimed = status.multiDailyRelaxationRewardClaimed, reward = 120))
-        tasks.add(DailyTaskInfo(DailyTaskKind.DAILY_RELAXATION, canClaim = status.dailyRelaxationCompleted && !status.dailyRelaxationRewardClaimed, claimed = status.dailyRelaxationRewardClaimed, reward = 100))
+        if (com.vitalo.markrun.ad.AdManager.isAdAvailable(com.vitalo.markrun.ad.Ads.REWARD_TASK_LIMIT_UP)) {
+            tasks.add(DailyTaskInfo(DailyTaskKind.UPPER_STEP_CONVERSION, canClaim = false, claimed = status.upperStepConversionClaimed, reward = upperStepConversionReward))
+        }
+        if (com.vitalo.markrun.ad.AdManager.isAdAvailable(com.vitalo.markrun.ad.Ads.REWARD_TASK_MULTI_BROWSE)) {
+            tasks.add(DailyTaskInfo(DailyTaskKind.MULTI_DAILY_RELAXATION, canClaim = status.multiDailyRelaxationCompletedCount >= 3 && !status.multiDailyRelaxationRewardClaimed, claimed = status.multiDailyRelaxationRewardClaimed, reward = multiDailyRelaxationReward))
+        }
+        if (com.vitalo.markrun.ad.AdManager.isAdAvailable(com.vitalo.markrun.ad.Ads.TASK_BROWSE)) {
+            tasks.add(DailyTaskInfo(DailyTaskKind.DAILY_RELAXATION, canClaim = status.dailyRelaxationCompleted && !status.dailyRelaxationRewardClaimed, claimed = status.dailyRelaxationRewardClaimed, reward = dailyRelaxationReward))
+        }
         tasks.add(DailyTaskInfo(DailyTaskKind.RUNNING, canClaim = status.runningKcal >= 200 && !status.runningRewardClaimed, claimed = status.runningRewardClaimed, reward = runningReward))
         tasks.add(DailyTaskInfo(DailyTaskKind.TRAINING, canClaim = status.trainingMinutes >= 30 && !status.trainingRewardClaimed, claimed = status.trainingRewardClaimed, reward = trainingReward))
 
@@ -182,7 +264,7 @@ class TaskViewModel @Inject constructor(
         if (!status.notificationClaimed) {
             status.notificationClaimed = true
             saveDailyTaskStatus(status)
-            addLocalCoin(50)
+            addLocalCoin(notificationReward)
         }
     }
 
@@ -191,7 +273,7 @@ class TaskViewModel @Inject constructor(
         if (!status.motionUsageClaimed) {
             status.motionUsageClaimed = true
             saveDailyTaskStatus(status)
-            addLocalCoin(50)
+            addLocalCoin(motionUsageReward)
         }
     }
 

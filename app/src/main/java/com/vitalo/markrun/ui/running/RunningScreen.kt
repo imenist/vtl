@@ -31,6 +31,27 @@ fun RunningScreen(
     var isLoading by remember { mutableStateOf(false) }
     var isFollowingUser by remember { mutableStateOf(true) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(viewModel) {
+        viewModel.adEvent.collect { virtualId ->
+            val activity = context as? android.app.Activity
+            if (activity != null && com.vitalo.markrun.ad.AdManager.isAdAvailable(virtualId)) {
+                viewModel.pauseRunning()
+                showPauseOverlay = true
+                com.vitalo.markrun.ad.AdManager.showAd(
+                    activity = activity,
+                    virtualId = virtualId,
+                    onComplete = { rewarded ->
+                        if (rewarded) {
+                            com.vitalo.markrun.ui.common.GlobalOverlayManager.showCoinArrivedOverlay(20)
+                        }
+                    }
+                )
+            }
+        }
+    }
+
     val mapLocations = remember(locations) {
         locations.map { LatLng(it.latitude, it.longitude) }
     }

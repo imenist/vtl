@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +66,7 @@ import kotlin.random.Random
 fun SpinWheelScreen(
     onClose: () -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     var wheelOpacity by remember { mutableFloatStateOf(0f) }
@@ -85,6 +87,8 @@ fun SpinWheelScreen(
 
     var showResult by remember { mutableStateOf(false) }
     var resultCoinAmount by remember { mutableStateOf(0) }
+    var resultIsFree by remember { mutableStateOf(true) }
+    var resultMultiplier by remember { mutableFloatStateOf(1f) }
 
     var spinJob by remember { mutableStateOf<Job?>(null) }
     var targetRotation by remember { mutableFloatStateOf(0f) }
@@ -121,19 +125,36 @@ fun SpinWheelScreen(
                 Animatable(0.9f).animateTo(1f, tween(200)) { buttonClickScale = value }
             }
 
-            val targetIndex = Random.nextInt(0, 8)
-            selectedRewardIndex = targetIndex
-            resultCoinAmount = when (targetIndex) {
-                0 -> 100
-                1 -> 150
-                2 -> 200
-                3 -> 300
-                4 -> 3000
-                5 -> 500
-                6 -> 1500
-                7 -> 1000
-                else -> 100
+            val currentSpinCount = com.vitalo.markrun.util.MmkvUtils.getInt("spinWheelCount", 0)
+            val cfg = com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.NEW_USER_SPIN) as? com.vitalo.markrun.common.ab.impl.NewUserSpinConfig
+            
+            if (currentSpinCount == 0) {
+                resultCoinAmount = cfg?.newUserSpinFrstCoin ?: 1000
+                resultIsFree = true
+                resultMultiplier = 1.0f
+            } else if (currentSpinCount == 1) {
+                resultCoinAmount = cfg?.newUserSpinSecondCoin ?: 1000
+                resultIsFree = false
+                resultMultiplier = 1.2f
+            } else {
+                if (kotlin.random.Random.nextFloat() < 0.3f) {
+                    resultCoinAmount = 100
+                } else {
+                    resultCoinAmount = 150
+                }
+                resultIsFree = false
+                resultMultiplier = (kotlin.random.Random.nextInt(11, 16) / 10f)
             }
+            
+            val targetIndex = when (resultCoinAmount) {
+                100 -> 0
+                150 -> 1
+                3000 -> 4
+                1500 -> 6
+                1000 -> 7
+                else -> 2
+            }
+            selectedRewardIndex = targetIndex
 
             val sectorAngle = 360f / 8f
             val extraRotations = Random.nextInt(5, 8)
@@ -160,6 +181,7 @@ fun SpinWheelScreen(
                     isSpinning = false
                     isCompleting = false
                     showResult = true
+                    com.vitalo.markrun.util.MmkvUtils.putInt("spinWheelCount", com.vitalo.markrun.util.MmkvUtils.getInt("spinWheelCount", 0) + 1)
                     
                     // Fade out
                     Animatable(1f).animateTo(0f, tween(500, easing = LinearEasing)) { wheelOpacity = value }
@@ -185,6 +207,7 @@ fun SpinWheelScreen(
                 isSpinning = false
                 isCompleting = false
                 showResult = true
+                com.vitalo.markrun.util.MmkvUtils.putInt("spinWheelCount", com.vitalo.markrun.util.MmkvUtils.getInt("spinWheelCount", 0) + 1)
 
                 // Fade out
                 Animatable(1f).animateTo(0f, tween(500, easing = LinearEasing)) { wheelOpacity = value }
@@ -449,6 +472,8 @@ fun SpinWheelScreen(
         if (showResult) {
             SpinWheelRewardDialog(
                 coinNum = resultCoinAmount,
+                isFree = resultIsFree,
+                multiplier = resultMultiplier,
                 onClose = {
                     showResult = false
                     isEntranceComplete = true
@@ -465,18 +490,38 @@ fun SpinWheelScreen(
                     }
                 },
                 onPlayAgain = {
-                    showResult = false
-                    isEntranceComplete = true
-                    wheelOpacity = 1f
-                    rotationDeg = 0f
-                    targetRotation = 0f
-                    skipButtonClicked = false
-                    isSpinning = false
-                    isCompleting = false
-                    // Short delay to reset then auto spin again
-                    scope.launch {
-                        delay(100)
-                        triggerSpin()
+                    val proceed = {
+                        showResult = false
+                        isEntranceComplete = true
+                        wheelOpacity = 1f
+                        rotationDeg = 0f
+                        targetRotation = 0f
+                        skipButtonClicked = false
+                        isSpinning = false
+                        isCompleting = false
+                        // Short delay to reset then auto spin again
+                        scope.launch {
+                            delay(100)
+                            triggerSpin()
+                        }
+                    }
+
+                    if (!resultIsFree) {
+                        val activity = context as? android.app.Activity
+                        if (activity != null) {
+                            com.vitalo.markrun.ad.AdManager.showAd(
+                                activity = activity,
+                                virtualId = com.vitalo.markrun.ad.Ads.REWARD_ACTIVITY_LUCKY_WHEEL
+                            ) { rewarded ->
+                                if (rewarded) {
+                                    proceed()
+                                }
+                            }
+                        } else {
+                            proceed()
+                        }
+                    } else {
+                        proceed()
                     }
                 }
             )
@@ -607,6 +652,8 @@ fun getRewardImageId(index: Int): Int {
 @Composable
 private fun SpinWheelRewardDialog(
     coinNum: Int,
+    isFree: Boolean,
+    multiplier: Float,
     onClose: () -> Unit,
     onPlayAgain: () -> Unit
 ) {
@@ -771,15 +818,17 @@ private fun SpinWheelRewardDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(top = 0.dp)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_exchange_ad_play),
-                        contentDescription = null,
-                        modifier = Modifier.size(17.dp, 14.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    if (!isFree) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_exchange_ad_play),
+                            contentDescription = null,
+                            modifier = Modifier.size(17.dp, 14.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
                     Text(
-                        text = "Claim x 1.2",
+                        text = if (isFree) "Claim" else "Claim x $multiplier",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
                         fontStyle = FontStyle.Italic,

@@ -56,6 +56,28 @@ object AbConfigDataRepo : JsonCacheDataRepo<AbConfigResponse>(VitaloApp.getInsta
         contracts.add(AbSidTable.WITHDRAW)
     }
 
+    override fun fetchCacheData(callback: (cacheData: AbConfigResponse?) -> Unit) {
+        super.fetchCacheData { cacheData ->
+            if (cacheData == null) {
+                val isBuyUser = com.vitalo.markrun.common.buy.BuySdkManager.isBuyUser()
+                val assetName = if (isBuyUser) "ab/BuyUserABTestConfig.json" else "ab/DefaultABTestConfig.json"
+                try {
+                    val json = context.assets.open(assetName).bufferedReader().use { it.readText() }
+                    val parsed = AbResultParser.extract(json, contracts)
+                    if (parsed != null) {
+                        Log.d(logTag, "AB请求数据缓存为空或无效, 尝试使用默认配置: ${assetName}")
+                        onCacheLoaded(parsed)
+                        callback(parsed)
+                        return@fetchCacheData
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            callback(cacheData)
+        }
+    }
+
     override fun createDeserializerGson(): Gson {
         return AbResultParser.createGson(contracts)
     }

@@ -20,17 +20,18 @@ data class WithdrawalAmount(
     @SerializedName("withdraw_code") val withdrawCode: String?,
     @SerializedName("withdraw_type") val withdrawType: Int?,
     val state: Int?,
-    @SerializedName("limit_per_user") val limitPerUser: Int?,
-    @SerializedName("limit_user_per_day") val limitUserPerDay: Int?,
-    @SerializedName("coin_amount_v2") val coinAmountV2: Double?,
-    @SerializedName("common_state") val commonState: Int?,
-    @SerializedName("limit_per_day") val limitPerDay: Int?,
-    @SerializedName("coin_amount") val coinAmount: Int?,
-    @SerializedName("limit_break_times") val limitBreakTimes: Int?,
-    @SerializedName("limit_sign_days") val limitSignDays: Int?,
-    @SerializedName("limit_clock_days") val limitClockDays: Int?,
-    @SerializedName("watch_ad_times") val watchAdTimes: Int?,
-    @SerializedName("crack_egg_fragments") val crackEggFragments: Int?
+    @SerializedName("limit_per_user") var limitPerUser: Int?,
+    @SerializedName("limit_user_per_day") var limitUserPerDay: Int?,
+    @SerializedName("coin_amount_v2") var coinAmountV2: Double?,
+    @SerializedName("common_state") var commonState: Int?,
+    @SerializedName("limit_per_day") var limitPerDay: Int?,
+    @SerializedName("coin_amount") var coinAmount: Int?,
+    @SerializedName("limit_break_times") var limitBreakTimes: Int?,
+    @SerializedName("limit_sign_days") var limitSignDays: Int?,
+    @SerializedName("limit_clock_days") var limitClockDays: Int?,
+    @SerializedName("watch_ad_times") var watchAdTimes: Int?,
+    @SerializedName("crack_egg_fragments") var crackEggFragments: Int?,
+    var isExchanged: Boolean = false
 )
 
 data class WithdrawalResult(

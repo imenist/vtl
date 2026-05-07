@@ -103,24 +103,32 @@ fun HomeScreen(navController: NavController) {
                     cooldownTotalSeconds = earnCooldownTotal,
                     onTap = {
                         if (earnIsLoading || earnIsCooling) return@AdEarnCoinFloatingButton
-                        earnIsLoading = true
-                        scope.launch {
-                            delay(900)
-                            earnIsLoading = false
-                            
-                            GlobalOverlayManager.showCoinArrivedOverlay(earnCoin)
-                            
-                            earnIsCooling = true
-                            earnCooldownLeft = earnCooldownTotal
-                            cooldownJob?.cancel()
-                            cooldownJob = launch {
-                                while (earnCooldownLeft > 0) {
-                                    delay(1000)
-                                    earnCooldownLeft -= 1
+                        val act = context as? android.app.Activity ?: return@AdEarnCoinFloatingButton
+                        com.vitalo.markrun.ad.AdManager.showAd(
+                            activity = act,
+                            virtualId = com.vitalo.markrun.ad.Ads.REWARD_GLOBAL_FLOAT,
+                            onComplete = { rewarded ->
+                                if (rewarded) {
+                                    earnIsLoading = true
+                                    scope.launch {
+                                        earnIsLoading = false
+                                        
+                                        GlobalOverlayManager.showCoinArrivedOverlay(earnCoin)
+                                        
+                                        earnIsCooling = true
+                                        earnCooldownLeft = earnCooldownTotal
+                                        cooldownJob?.cancel()
+                                        cooldownJob = launch {
+                                            while (earnCooldownLeft > 0) {
+                                                delay(1000)
+                                                earnCooldownLeft -= 1
+                                            }
+                                            earnIsCooling = false
+                                        }
+                                    }
                                 }
-                                earnIsCooling = false
                             }
-                        }
+                        )
                     }
                 )
             }

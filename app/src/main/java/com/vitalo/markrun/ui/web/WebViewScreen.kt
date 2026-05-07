@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
+import com.vitalo.markrun.ad.AdManager
+import com.vitalo.markrun.ad.Ads
 import com.vitalo.markrun.data.local.prefs.AppPreferences
 import com.vitalo.markrun.service.CoinManager
 import com.vitalo.markrun.service.LoginManager
@@ -44,7 +46,8 @@ import javax.crypto.spec.SecretKeySpec
 
 @Composable
 fun WebViewScreen(
-    navController: NavController,
+    navController: NavController? = null,
+    onCloseOverride: (() -> Unit)? = null,
     kind: String,
     index: Int = -1,
     loginManager: LoginManager? = null,
@@ -57,6 +60,25 @@ fun WebViewScreen(
     var showError by remember { mutableStateOf(false) }
     var isH5Ready by remember { mutableStateOf(false) }
     val url = remember(kind, index) { getWebGameUrl(kind, index) }
+    val context = LocalContext.current
+    val handleClose: () -> Unit = {
+        val activity = context as? Activity
+        if (activity != null) {
+            AdManager.showAd(activity, Ads.INTERSTITIAL_NON_GUIDE_H5) {
+                if (onCloseOverride != null) {
+                    onCloseOverride()
+                } else {
+                    navController?.popBackStack()
+                }
+            }
+        } else {
+            if (onCloseOverride != null) {
+                onCloseOverride()
+            } else {
+                navController?.popBackStack()
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -92,7 +114,7 @@ fun WebViewScreen(
                             appPreferences = appPreferences,
                             coinManager = coinManager,
                             deviceInfoUtils = deviceInfoUtils,
-                            onClose = { navController.popBackStack() },
+                            onClose = handleClose,
                             onJsReady = { isH5Ready = true }
                         ),
                         "MarkRun"
@@ -142,7 +164,7 @@ fun WebViewScreen(
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(Color.Black.copy(alpha = 0.4f))
-                    .clickable { navController.popBackStack() },
+                    .clickable { handleClose() },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -218,6 +240,7 @@ private fun getWebGameUrl(kind: String, index: Int): String {
         "spinWheel" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageWheel"
         "smashEgg" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageSmashEgg"
         "signIn" -> "https://h5-stage.mark-run.com/game-collection/v1/index.html#/PageSignIn"
+        "homeFix" -> com.vitalo.markrun.common.ab.AbConfigDataRepo.getH5AdEntryLinkControl()
         "game" -> AbConfigDataRepo.getH5AdEntryLinkControl()
         "dailyRelaxation" -> AbConfigDataRepo.getDailyTaskH5AdLink(0) ?: "https://three.combatarenaelite.com/LY/10586/"
         "multiDailyRelaxation" -> AbConfigDataRepo.getDailyTaskH5AdLink(index) ?: "https://three.combatarenaelite.com/LY/10586/"
@@ -332,7 +355,15 @@ class VitaloBridge(
                     handler.post {
                         val activity = webView.context as? Activity
                         if (activity != null) {
-                            com.vitalo.markrun.ad.AdManager.showAd(activity, 0) { rewarded ->
+                            val virtualId = when (adKey) {
+                                "slot_machine_ad" -> Ads.REWARD_ACTIVITY_SLOT_MACHINE
+                                "smash_egg_ad" -> Ads.REWARD_ACTIVITY_SMASH_EGG
+                                "lucky_wheel_ad", "wheel_ad" -> Ads.REWARD_ACTIVITY_LUCKY_WHEEL
+                                "flip_card_ad", "flip_ad" -> Ads.REWARD_ACTIVITY_FLIP_CARD
+                                "sign_in_ad", "sign_ad" -> Ads.REWARD_ACTIVITY_SIGN_IN
+                                else -> 0
+                            }
+                            com.vitalo.markrun.ad.AdManager.showAd(activity, virtualId) { rewarded ->
                                 val result = if (rewarded) "success" else "failed"
                                 val responseJson = JSONObject().apply {
                                     put("key", adKey)
@@ -478,6 +509,7 @@ class VitaloBridge(
                 "infos_1807" to AbSidTable.HAMMER,        // 砸蛋 (iOS: smashEgg)
                 "infos_1809" to AbSidTable.SLOT_MACHINE,  // 老虎机 (iOS: slotMachine)
                 "infos_1811" to AbSidTable.FLOP_COIN,     // 翻牌 (iOS: flipCard)
+                "infos_1815" to AbSidTable.MINI_GAME_SWITCH, // 小游戏开关 (iOS: webSwitch)
                 "infos_1833" to AbSidTable.AD_POLICY,     // 广告开关 (iOS: adSwitch)
                 "infos_1831" to AbSidTable.AD             // 广告配置 (iOS: adConfig)
             )

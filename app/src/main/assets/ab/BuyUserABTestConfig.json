@@ -1,0 +1,481 @@
+{
+  "datas" : {
+    "infos_1831" : {
+      "filter_id" : 24307,
+      "cfgs" : [
+        {
+          "cfg_id" : 67725,
+          "ad_daily_limit" : 3,
+          "ad_interval" : 50,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "全局悬浮广告",
+          "ad_reward" : 150,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10000983"
+        },
+        {
+          "cfg_id" : 67757,
+          "ad_daily_limit" : 4,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "翻牌广告",
+          "ad_reward" : 500,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001015"
+        },
+        {
+          "cfg_id" : 67755,
+          "ad_daily_limit" : 2,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "老虎机广告",
+          "ad_reward" : 200,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001013"
+        },
+        {
+          "cfg_id" : 67753,
+          "ad_daily_limit" : 3,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "砸蛋广告",
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001011"
+        },
+        {
+          "cfg_id" : 67751,
+          "ad_daily_limit" : 3,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "转盘广告",
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001009"
+        },
+        {
+          "cfg_id" : 67749,
+          "ad_daily_limit" : 3,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "签到广告",
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001007"
+        },
+        {
+          "ad_virtual_id" : "10001005",
+          "cfg_id" : 67747,
+          "ad_switch" : "1",
+          "ad_switch_text_notes" : "",
+          "ad_name" : "任务界面提高上限广告",
+          "cfg_tb_id" : 0
+        },
+        {
+          "cfg_id" : 67745,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "跑步结束页广告",
+          "ad_reward" : 100,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001003"
+        },
+        {
+          "cfg_id" : 67743,
+          "ad_daily_limit" : 3,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "事件点广告2",
+          "ad_reward" : 150,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001001"
+        },
+        {
+          "cfg_id" : 67741,
+          "ad_daily_limit" : 3,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "事件点广告1",
+          "ad_reward" : 50,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10000999"
+        },
+        {
+          "cfg_id" : 67739,
+          "ad_daily_limit" : 3,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "课程完成结束页广告",
+          "ad_reward" : 150,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10000997"
+        },
+        {
+          "cfg_id" : 67737,
+          "ad_daily_limit" : 3,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "课程中途结束页广告",
+          "ad_reward" : 50,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10000995"
+        },
+        {
+          "cfg_id" : 67735,
+          "ad_daily_limit" : 3,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "课程休息时间广告",
+          "ad_reward" : 100,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10000993"
+        },
+        {
+          "cfg_id" : 67733,
+          "ad_daily_limit" : 3,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "兑换页广告位",
+          "ad_reward" : 200,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10000991"
+        },
+        {
+          "cfg_id" : 67731,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "首页固定广告位",
+          "ad_reward" : 50,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10000989"
+        },
+        {
+          "ad_virtual_id" : "10001047",
+          "cfg_id" : 68901,
+          "ad_switch" : "1",
+          "ad_switch_text_notes" : "",
+          "ad_name" : "小额提现广告",
+          "cfg_tb_id" : 0
+        },
+        {
+          "cfg_id" : 69199,
+          "ad_switch_text_notes" : "",
+          "ad_interval" : 120,
+          "ad_name" : "插屏-非用户引导入口进入的H５界面",
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001035"
+        },
+        {
+          "cfg_id" : 69197,
+          "ad_switch_text_notes" : "",
+          "ad_interval" : 130,
+          "ad_name" : "插屏-任务界面奖励下发弹窗",
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001039"
+        },
+        {
+          "cfg_id" : 69195,
+          "ad_switch_text_notes" : "",
+          "ad_interval" : 200,
+          "ad_name" : "插屏-跑步结束界面",
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001037"
+        },
+        {
+          "cfg_id" : 69193,
+          "ad_switch_text_notes" : "",
+          "ad_interval" : 300,
+          "ad_name" : "插屏-课程结束界面",
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001033"
+        },
+        {
+          "ad_virtual_id" : "10001031",
+          "cfg_id" : 69191,
+          "ad_switch" : "1",
+          "ad_switch_text_notes" : "",
+          "ad_name" : "开屏-热启动",
+          "cfg_tb_id" : 0
+        },
+        {
+          "ad_virtual_id" : "10001029",
+          "cfg_id" : 69189,
+          "ad_switch" : "1",
+          "ad_switch_text_notes" : "",
+          "ad_name" : "开屏-非首次冷启动",
+          "cfg_tb_id" : 0
+        },
+        {
+          "ad_virtual_id" : "10001027",
+          "cfg_id" : 69187,
+          "ad_switch" : "1",
+          "ad_switch_text_notes" : "",
+          "ad_name" : "开屏-首次冷启动",
+          "cfg_tb_id" : 0
+        },
+        {
+          "cfg_id" : 71677,
+          "ad_switch_text_notes" : "",
+          "ad_name" : "任务页咨询广告",
+          "ad_reward" : 200,
+          "ad_switch" : "1",
+          "cfg_tb_id" : 0,
+          "ad_virtual_id" : "10001111"
+        },
+        {
+          "ad_virtual_id" : "10001207",
+          "cfg_id" : 76613,
+          "ad_switch" : "1",
+          "ad_switch_text_notes" : "",
+          "ad_name" : "步数提高上限任务",
+          "cfg_tb_id" : 0
+        },
+        {
+          "ad_virtual_id" : "10001205",
+          "cfg_id" : 76611,
+          "ad_switch" : "1",
+          "ad_switch_text_notes" : "",
+          "ad_name" : "首页步数",
+          "cfg_tb_id" : 0
+        },
+        {
+          "ad_virtual_id" : "10001315",
+          "cfg_id" : 76615,
+          "ad_switch" : "1",
+          "ad_switch_text_notes" : "",
+          "ad_name" : "任务界面多个浏览任务",
+          "cfg_tb_id" : 0
+        }
+      ],
+      "abtest_id" : 35911
+    },
+    "infos_1803" : {
+      "filter_id" : 24055,
+      "cfgs" : [
+        {
+          "cfg_id" : 66691,
+          "new_user_spin_frst_coin" : 1000,
+          "new_user_spin_second_coin" : 1000,
+          "cfg_tb_id" : 0
+        }
+      ],
+      "abtest_id" : 35475
+    },
+    "infos_1809" : {
+      "filter_id" : 24093,
+      "cfgs" : [
+        {
+          "slot_daily_limit" : 15,
+          "cfg_id" : 66783,
+          "slot_daily_free_chance" : 3,
+          "cfg_tb_id" : 0
+        }
+      ],
+      "abtest_id" : 35545
+    },
+    "infos_1815" : {
+      "filter_id" : 24311,
+      "cfgs" : [
+        {
+          "cfg_id" : 67729,
+          "h5_switch_text_notes" : "",
+          "new_user_spin_switch" : "1",
+          "golden_egg_switch" : "1",
+          "daily_sign_switch" : "1",
+          "flop_switch" : "1",
+          "cfg_tb_id" : 0,
+          "slot_switch" : "1"
+        }
+      ],
+      "abtest_id" : 35915
+    },
+    "infos_1829" : {
+      "filter_id" : 24309,
+      "cfgs" : [
+        {
+          "cfg_id" : 67727,
+          "daily_guide_switch" : "1",
+          "daily_guide_task_limit" : 3,
+          "daily_guide_checkin_limit" : 3,
+          "daily_guide_wheel_limit" : 5,
+          "daily_guide_h5_limit" : 15,
+          "daily_guide_redeem_limit" : 3,
+          "daily_guide_egg_limit" : 3,
+          "daily_guide_minredeem_limit" : 3,
+          "daily_guide_maxredeem_limit" : 3,
+          "sign_good_rate_switch" : "1",
+          "small_money_good_rate_switch" : "1",
+          "big_money_good_rate_switch" : "1",
+          "good_rate_limit" : 5,
+          "cfg_tb_id" : 0
+        }
+      ],
+      "abtest_id" : 35913
+    },
+    "infos_1801" : {
+      "filter_id" : 24053,
+      "cfgs" : [
+        {
+          "cfg_id" : 66687,
+          "1_point_kcal_number" : 1,
+          "daily_training_kcal_limit" : 50,
+          "daily_runing_kcal_limit" : 100,
+          "cfg_tb_id" : 0
+        }
+      ],
+      "abtest_id" : 35471
+    },
+    "infos_1807" : {
+      "filter_id" : 24091,
+      "cfgs" : [
+        {
+          "daily_hammer_limit" : 15,
+          "cfg_id" : 66781,
+          "daily_free_hammer" : 3,
+          "cfg_tb_id" : 0
+        }
+      ],
+      "abtest_id" : 35543
+    },
+    "infos_1813" : {
+      "filter_id" : 24077,
+      "cfgs" : [
+        {
+          "cfg_id" : 66717,
+          "new_user_spin_10_rewards" : 1000,
+          "today_sign_in_rewards" : 120,
+          "limited_time_chest_rewards" : 200,
+          "crack_egg_10_rewards" : 1500,
+          "training_30_min_rewards" : 150,
+          "up_run_kacl_limit_rewards" : 50,
+          "lucky_slot_10_rewards" : 1200,
+          "limited_time_chest_4_rewards" : 1000,
+          "cfg_tb_id" : 0,
+          "run_200_kcal_rewards" : 150,
+          "ask_ad_read_rewards" : 120,
+          "daily_consult_ad_rewards" : 100,
+          "health_permissions_enable": 200
+        }
+      ],
+      "abtest_id" : 35515
+    },
+    "infos_1833" : {
+      "filter_id" : 24305,
+      "cfgs" : [
+        {
+          "open_ad_compliance" : "0",
+          "daily_reward_ad_limit" : 50,
+          "admob_daily_open_ad_limit" : 3,
+          "cfg_id" : 67723,
+          "nofirst_cold_open_ad_switch" : "1",
+          "hot_open_ad_switch" : "1",
+          "reward_ad_switch" : "1",
+          "daily_interstitial_ad_limit" : 3,
+          "interstitial_ad_cp_min" : 1,
+          "cold_open_not_interstitial_min" : 2,
+          "admob_reward_ad_limit" : 0,
+          "daily_open_ad_limit" : 3,
+          "cfg_tb_id" : 0,
+          "interstitial_ad_switch" : "1",
+          "first_cold_open_ad_switch" : "1",
+          "admob_daily_interstitial_ad_limit" : 0
+        }
+      ],
+      "abtest_id" : 35909
+    },
+    "infos_1805" : {
+      "filter_id" : 24089,
+      "cfgs" : [
+        {
+          "cfg_id" : 66777,
+          "sign_1_coin" : 100,
+          "sign_7_coin" : 200,
+          "sign_streak_coin" : 300,
+          "sign_cash_day" : "1，3，7",
+          "cfg_tb_id" : 0
+        }
+      ],
+      "abtest_id" : 35541
+    },
+    "infos_1811" : {
+      "filter_id" : 24095,
+      "cfgs" : [
+        {
+          "cfg_id" : 66785,
+          "daily_flop_upto_1_cion" : 50,
+          "daily_flop_cion_limit" : 2400,
+          "every_flop_noupto_total_coin" : 600,
+          "cfg_tb_id" : 0
+        }
+      ],
+      "abtest_id" : 35547
+    },
+    "infos_1837" : {
+      "filter_id" : 24577,
+      "cfgs" : [
+        {
+          "small_withdraw_enable" : "1",
+          "cfg_id" : 68785,
+          "large_withdraw_enable" : "1",
+          "1_usd_coin_number" : 1000,
+          "cfg_tb_id" : 0
+        }
+      ],
+      "abtest_id" : 36527
+    },
+    "infos_1839" : {
+      "filter_id" : 24581,
+      "cfgs" : [
+        {
+          "cfg_id" : 68789,
+          "2_grade_money" : 0,
+          "no_ad_1_grade__code" : "withdraw_1_0.05",
+          "no_ad_1_grade__money" : 0.03,
+          "2_grade_code" : "0",
+          "cfg_tb_id" : 0,
+          "2_grade_need_ads" : 0,
+          "sign_1_grade__money" : 0.01,
+          "sign_1_grade__code" : "sign_withdraw_1",
+          "sign_2_grade__money" : 0.03,
+          "sign_2_grade__code" : "sign_withdraw_2",
+          "sign_3_grade__money" : 0.01,
+          "sign_3_grade__code" : "sign_withdraw_3"
+        }
+      ],
+      "abtest_id" : 36531
+    },
+    "infos_1847" : {
+      "filter_id" : 24757,
+      "cfgs" : [
+        {
+          "cfg_tb_id" : 0,
+          "cfg_id" : 69389,
+          "h5_ad_entry_link_control" : "https://web.eswevents.com/ https://page.eswevents.com/ https://saman.luvfinetips.com/#/en/ https://pose.luvfinetips.com/#/en/ https://hootgameb.site/  https://n1.zonitascap.org https://n2.zonitascap.org https://moon.baoug.top/ https://cloud.baoug.top/ https://star.baoug.top/",
+          "daily_task_h5_ad_link" : "https://hootgameb.site/  https://n1.zonitascap.org https://n2.zonitascap.org https://moon.baoug.top/ https://cloud.baoug.top/ https://star.baoug.top/",
+          "h5_ad_link_jump" : "1",
+          "task_h5_ad_link_num" : 3
+        }
+      ],
+      "abtest_id" : 36801
+    },
+    "infos_1851" : {
+      "filter_id" : 24789,
+      "cfgs" : [
+        {
+          "cfg_tb_id" : 0,
+          "cfg_id" : 69477,
+          "info_register_switch" : "0",
+          "daily_train_unlock_switch" : "1",
+          "train_progress_bar_switch" : "1",
+          "wallet_page_order" : "0"
+        }
+      ],
+      "abtest_id" : 36843
+    }
+  },
+  "status" : 200,
+  "message" : "ok",
+  "success" : true
+}

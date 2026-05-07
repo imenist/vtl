@@ -29,6 +29,9 @@ class SplashViewModel @Inject constructor(
     private val _shouldNavigate = MutableStateFlow(SplashNavTarget.NONE)
     val shouldNavigate = _shouldNavigate.asStateFlow()
 
+    private val _shouldShowAd = MutableStateFlow<Int?>(null)
+    val shouldShowAd = _shouldShowAd.asStateFlow()
+
     private val shouldAutoNavigate: Boolean =
         appPreferences.hasLaunchedBefore && userManager.exists()
 
@@ -52,11 +55,34 @@ class SplashViewModel @Inject constructor(
                 _progress.value = i.toFloat() / steps
             }
 
-            navigateNext()
+            val virtualId = if (appPreferences.hasLaunchedBefore) com.vitalo.markrun.ad.Ads.SPLASH_NON_FIRST_COLD_START else com.vitalo.markrun.ad.Ads.SPLASH_FIRST_COLD_START
+            _shouldShowAd.value = virtualId
         }
     }
 
+    fun onAdCompleted() {
+        _shouldShowAd.value = null
+        navigateNext()
+    }
+
     private fun navigateNext() {
+        val appUiSwitchConfig = com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.APP_UI_SWITCH) as? com.vitalo.markrun.common.ab.impl.AppUiSwitchConfig
+        val isInfoRegisterEnable = appUiSwitchConfig?.infoRegisterSwitch == "1"
+
+        if (!shouldAutoNavigate && !isInfoRegisterEnable) {
+            // Skip onboarding and go directly to home
+            val user = com.vitalo.markrun.service.User(
+                gender = com.vitalo.markrun.service.Gender.FEMALE,
+                birthday = java.util.Calendar.getInstance().apply { set(1999, 0, 1) }.timeInMillis,
+                height = 160,
+                weight = 55
+            )
+            userManager.save(user)
+            appPreferences.setHasLaunchedBefore(true)
+            _shouldNavigate.value = SplashNavTarget.HOME
+            return
+        }
+
         if (shouldAutoNavigate) {
             _shouldNavigate.value = SplashNavTarget.HOME
         } else {

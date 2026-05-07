@@ -38,7 +38,8 @@ import com.vitalo.markrun.ui.utils.GradientStrokeTextView
 
 @Composable
 fun StepCounterView(
-    viewModel: StepCounterViewModel = hiltViewModel()
+    viewModel: StepCounterViewModel = hiltViewModel(),
+    onFlipCard: () -> Unit = {}
 ) {
     val currentSteps by viewModel.currentSteps.collectAsState()
     val todayConverted by viewModel.todayConvertedSteps.collectAsState()
@@ -139,12 +140,24 @@ fun StepCounterView(
                     .clip(RoundedCornerShape(28.dp))
                     .background(Color(0xFF0D120E))
                     .clickable {
-                        val earned = viewModel.convertSteps()
-                        if (earned > 0) {
-                            Toast
-                                .makeText(context, "+$earned CaloCoins!", Toast.LENGTH_SHORT)
-                                .show()
+                        val coinsCanEarn = viewModel.getCoinsCanEarn()
+                        if (coinsCanEarn > 0) {
+                            val activity = context as? android.app.Activity
+                            if (activity != null) {
+                                com.vitalo.markrun.ad.AdManager.showAd(
+                                    activity = activity,
+                                    virtualId = com.vitalo.markrun.ad.Ads.REWARD_HOME_STEP
+                                ) { rewarded ->
+                                    val earned = viewModel.convertSteps()
+                                    if (earned > 0) {
+                                        Toast
+                                            .makeText(context, "+$earned CaloCoins!", Toast.LENGTH_SHORT)
+                                            .show()
+                                    }
+                                }
+                            }
                         } else {
+                            onFlipCard()
                             Toast
                                 .makeText(context, "No convertible steps yet", Toast.LENGTH_SHORT)
                                 .show()
@@ -221,6 +234,7 @@ fun StepCounterView(
                                 Toast.makeText(context, "Already claimed", Toast.LENGTH_SHORT).show()
                             }
                             StepMilestoneStatus.LOCKED -> {
+                                onFlipCard()
                                 Toast.makeText(context, "Keep walking to unlock", Toast.LENGTH_SHORT).show()
                             }
                         }

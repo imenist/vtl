@@ -182,15 +182,26 @@ class AbManager @Inject constructor(
 
     private fun loadCache() {
         try {
-            if (!jsonCacheFile.exists()) return
-            val json = jsonCacheFile.readText().takeIf { it.isNotBlank() } ?: return
-            val parsed = AbResultParser.extract(json, contracts)
-            if (parsed != null) {
-                _response.value = parsed
-                Log.d(TAG, "AB 磁盘缓存加载成功")
+            var json = ""
+            if (jsonCacheFile.exists()) {
+                json = jsonCacheFile.readText()
+            }
+            if (json.isBlank()) {
+                val isBuyUser = com.vitalo.markrun.common.buy.BuySdkManager.isBuyUser()
+                val assetName = if (isBuyUser) "ab/BuyUserABTestConfig.json" else "ab/DefaultABTestConfig.json"
+                Log.d(TAG, "AB 磁盘缓存为空或不存在，尝试使用默认配置: $assetName")
+                json = context.assets.open(assetName).bufferedReader().use { it.readText() }
+            }
+            
+            if (json.isNotBlank()) {
+                val parsed = AbResultParser.extract(json, contracts)
+                if (parsed != null) {
+                    _response.value = parsed
+                    Log.d(TAG, "AB 缓存(或默认配置)加载成功")
+                }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "AB 磁盘缓存加载失败: ${e.message}")
+            Log.w(TAG, "AB 缓存(或默认配置)加载失败: ${e.message}")
         }
     }
 }

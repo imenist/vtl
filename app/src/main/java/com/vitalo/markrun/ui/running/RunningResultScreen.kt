@@ -91,8 +91,21 @@ fun RunningResultScreen(
                     modifier = Modifier
                         .size(50.dp)
                         .clickable {
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(0) { inclusive = true }
+                            val activity = context as? Activity
+                            if (activity != null) {
+                                AdManager.showAd(
+                                    activity = activity,
+                                    virtualId = Ads.INTERSTITIAL_RUN_END,
+                                    onComplete = {
+                                        navController.navigate(Screen.Home.route) {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
+                                )
+                            } else {
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
                             }
                         }
                 )
@@ -255,7 +268,11 @@ fun RunningResultScreen(
                             AdManager.showAd(
                                 activity = activity,
                                 virtualId = Ads.REWARD_RUN_END,
-                                onComplete = {
+                                onComplete = { rewarded ->
+                                    if (rewarded && totalCoins > 0) {
+                                        viewModel.addCoins(totalCoins)
+                                        GlobalOverlayManager.showCoinArrivedOverlay(totalCoins)
+                                    }
                                     navController.navigate(Screen.Home.route) {
                                         popUpTo(0) { inclusive = true }
                                     }

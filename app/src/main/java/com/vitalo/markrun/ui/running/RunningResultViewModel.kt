@@ -6,6 +6,7 @@ import com.vitalo.markrun.data.local.db.dao.RunningPointDao
 import com.vitalo.markrun.data.local.db.dao.RunningRecordDao
 import com.vitalo.markrun.data.local.db.entity.RunningPoint
 import com.vitalo.markrun.data.local.db.entity.RunningRecord
+import com.vitalo.markrun.service.CoinManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class RunningResultViewModel @Inject constructor(
     private val runningRecordDao: RunningRecordDao,
-    private val runningPointDao: RunningPointDao
+    private val runningPointDao: RunningPointDao,
+    private val coinManager: CoinManager
 ) : ViewModel() {
 
     private val _record = MutableStateFlow<RunningRecord?>(null)
@@ -36,5 +38,9 @@ class RunningResultViewModel @Inject constructor(
         viewModelScope.launch {
             runningRecordDao.deleteById(recordId)
         }
+    }
+
+    fun addCoins(amount: Int) {
+        coinManager.addCoin(amount)
     }
 }

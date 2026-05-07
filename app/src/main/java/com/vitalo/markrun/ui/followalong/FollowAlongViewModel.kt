@@ -10,7 +10,9 @@ import com.vitalo.markrun.data.remote.model.Training
 import javax.inject.Inject
 
 @HiltViewModel
-class FollowAlongViewModel @Inject constructor() : ViewModel() {
+class FollowAlongViewModel @Inject constructor(
+    private val coinManager: com.vitalo.markrun.service.CoinManager
+) : ViewModel() {
 
     private val _currentIndex = MutableStateFlow(0)
     val currentIndex: StateFlow<Int> = _currentIndex.asStateFlow()
@@ -23,6 +25,9 @@ class FollowAlongViewModel @Inject constructor() : ViewModel() {
 
     private val _progress = MutableStateFlow(0.0)
     val progress: StateFlow<Double> = _progress.asStateFlow()
+
+    private val _shouldShowTimer = MutableStateFlow(false)
+    val shouldShowTimer: StateFlow<Boolean> = _shouldShowTimer.asStateFlow()
 
     private val _bonusProgress = MutableStateFlow(0.0)
     val bonusProgress: StateFlow<Double> = _bonusProgress.asStateFlow()
@@ -72,6 +77,18 @@ class FollowAlongViewModel @Inject constructor() : ViewModel() {
             return Math.round((totalLessonCalorie / totalLessonDuration) * totalSeconds).toInt()
         }
 
+    fun calculateCoins(): Int {
+        val calorie = totalWorkoutCalorie
+        val config = com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.KCAL_LIMIT) as? com.vitalo.markrun.common.ab.impl.KcalLimitConfig
+        val onePointKcal = config?.pointKcalNumber ?: 1
+        val dailyLimit = config?.dailyTrainingKcalLimit ?: 50
+        if (onePointKcal > 0) {
+            val thisCoin = calorie / onePointKcal
+            return coinManager.addCoinWithDailyLimit(thisCoin, dailyLimit, "training_finish")
+        }
+        return 0
+    }
+
     fun load(mountActions: List<MountAction>, training: Training?) {
         if (isLoaded) return
         isLoaded = true
@@ -82,6 +99,14 @@ class FollowAlongViewModel @Inject constructor() : ViewModel() {
         training?.let {
             totalLessonCalorie = (it.calorie ?: 0).toDouble()
             totalLessonDuration = (it.duration ?: 0).toDouble()
+        }
+        
+        val appUiSwitchConfig = com.vitalo.markrun.common.ab.AbConfigDataRepo.getCurrentConfig(com.vitalo.markrun.common.ab.AbSidTable.APP_UI_SWITCH) as? com.vitalo.markrun.common.ab.impl.AppUiSwitchConfig
+        if (appUiSwitchConfig?.trainProgressBarSwitch == "1") {
+            // TODO: check daily limit of 300 coins
+            _shouldShowTimer.value = true
+        } else {
+            _shouldShowTimer.value = false
         }
     }
 

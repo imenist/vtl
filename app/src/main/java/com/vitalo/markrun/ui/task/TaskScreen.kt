@@ -225,7 +225,16 @@ fun TaskScreen(
                 DailyTaskKind.NEW_USER_SPIN -> com.vitalo.markrun.ui.common.GlobalOverlayManager.showSpinWheelOverlay()
                 DailyTaskKind.CRACK_EGG -> onNavigateToWebGame("smashEgg")
                 DailyTaskKind.LUCKY_SLOT -> onNavigateToWebGame("slotMachine")
-                DailyTaskKind.DAILY_RELAXATION -> onNavigateToWebGame("dailyRelaxation")
+                DailyTaskKind.DAILY_RELAXATION -> {
+                    val jumpType = com.vitalo.markrun.common.ab.AbConfigDataRepo.getH5AdLinkJump()
+                    if (jumpType == "0") {
+                        val url = com.vitalo.markrun.common.ab.AbConfigDataRepo.getDailyTaskH5AdLink(0) ?: "https://three.combatarenaelite.com/LY/10586/"
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                        context.startActivity(intent)
+                    } else {
+                        onNavigateToWebGame("dailyRelaxation")
+                    }
+                }
                 DailyTaskKind.UPPER_STEP_CONVERSION -> {
                     val activity = context as? Activity
                     if (activity != null) {
@@ -273,9 +282,19 @@ fun TaskScreen(
             }
         },
         onMultiDailyRelaxationGo = { index ->
-            onNavigateToWebGameWithIndex("multiDailyRelaxation", index)
+            val jumpType = com.vitalo.markrun.common.ab.AbConfigDataRepo.getH5AdLinkJump()
+            if (jumpType == "0") {
+                val url = com.vitalo.markrun.common.ab.AbConfigDataRepo.getDailyTaskH5AdLink(index) ?: "https://three.combatarenaelite.com/LY/10586/"
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                context.startActivity(intent)
+            } else {
+                onNavigateToWebGameWithIndex("multiDailyRelaxation", index)
+            }
         },
-        onTaskClaim = { viewModel.claimReward(it) }
+        onTaskClaim = { viewModel.claimReward(it) },
+        onFlipCard = {
+            com.vitalo.markrun.ui.common.GlobalOverlayManager.showFlipCardOverlay()
+        }
     )
 }
 
@@ -297,6 +316,7 @@ fun TaskScreenContent(
     onTaskGo: (DailyTaskKind) -> Unit = {},
     onMultiDailyRelaxationGo: (Int) -> Unit = {},
     onTaskClaim: (DailyTaskKind) -> Unit = {},
+    onFlipCard: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -363,7 +383,8 @@ fun TaskScreenContent(
                             completedIndices = multiRelaxCompletedIndices,
                             rewardPerRound = task.reward,
                             onGoIndex = onMultiDailyRelaxationGo,
-                            onClaim = { onTaskClaim(task.kind) }
+                            onClaim = { onTaskClaim(task.kind) },
+                            onFlipCard = onFlipCard
                         )
                     }
                     else -> {
@@ -371,7 +392,8 @@ fun TaskScreenContent(
                             task = task,
                             taskStatus = taskStatus,
                             onGo = { onTaskGo(task.kind) },
-                            onClaim = { onTaskClaim(task.kind) }
+                            onClaim = { onTaskClaim(task.kind) },
+                            onFlipCard = onFlipCard
                         )
                     }
                 }
@@ -698,6 +720,7 @@ fun DailyTaskView(
     taskStatus: DailyTaskStatus = DailyTaskStatus.empty(),
     onGo: () -> Unit = {},
     onClaim: () -> Unit = {},
+    onFlipCard: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val showGo = canShowGoButton(task)
@@ -797,6 +820,7 @@ fun DailyTaskView(
                     when {
                         task.canClaim -> onClaim()
                         showGo -> onGo()
+                        else -> onFlipCard()
                     }
                 }
             )
@@ -818,6 +842,7 @@ fun TaskDailyRelaxationItemView(
     @Suppress("UNUSED_PARAMETER") rewardPerRound: Int = 400,
     onGoIndex: (Int) -> Unit = {},
     onClaim: () -> Unit = {},
+    onFlipCard: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val completedCount = completedIndices.count { it }
@@ -861,6 +886,7 @@ fun TaskDailyRelaxationItemView(
                     when {
                         allDone && !task.claimed -> onClaim()
                         showGo && !allDone -> onGoIndex(completedIndices.indexOfFirst { !it }.coerceAtLeast(0))
+                        else -> onFlipCard()
                     }
                 }
             )

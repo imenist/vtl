@@ -238,16 +238,44 @@ fun NavGraph() {
             SignInOverlay(onClose = { GlobalOverlayManager.dismissSignInOverlay() })
         }
         if (GlobalOverlayManager.showCoinArrived) {
+            val context = androidx.compose.ui.platform.LocalContext.current
             com.vitalo.markrun.ui.common.UnifiedCoinArrivedDialog(
                 coinNum = GlobalOverlayManager.coinArrivedAmount,
                 getButtonText = "Get More",
-                onClose = { GlobalOverlayManager.dismissCoinArrivedOverlay() }
+                onClose = { isGetMore -> 
+                    val activity = context as? android.app.Activity
+                    if (activity != null) {
+                        com.vitalo.markrun.ad.AdManager.showAd(
+                            activity = activity,
+                            virtualId = com.vitalo.markrun.ad.Ads.INTERSTITIAL_TASK_REWARD_POPUP,
+                            onComplete = {
+                                GlobalOverlayManager.dismissCoinArrivedOverlay() 
+                                if (isGetMore) {
+                                    GlobalOverlayManager.showFlipCardOverlay()
+                                }
+                            }
+                        )
+                    } else {
+                        GlobalOverlayManager.dismissCoinArrivedOverlay() 
+                        if (isGetMore) {
+                            GlobalOverlayManager.showFlipCardOverlay()
+                        }
+                    }
+                }
             )
         }
         if (GlobalOverlayManager.showConversionRules) {
             ConversionRulesDialog(
                 coinExchangeRate = GlobalOverlayManager.conversionRulesExchangeRate,
                 onClose = { GlobalOverlayManager.dismissConversionRulesOverlay() }
+            )
+        }
+
+        if (GlobalOverlayManager.showFlipCard) {
+            WebViewScreen(
+                navController = navController,
+                onCloseOverride = { GlobalOverlayManager.dismissFlipCardOverlay() },
+                kind = "flipCard"
             )
         }
 

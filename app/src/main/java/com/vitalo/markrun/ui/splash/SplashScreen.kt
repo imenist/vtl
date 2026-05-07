@@ -1,5 +1,6 @@
 package com.vitalo.markrun.ui.splash
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,9 +12,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.vitalo.markrun.ad.AdManager
 import com.vitalo.markrun.navigation.Screen
 import com.vitalo.markrun.ui.common.CommonLottieView
 import com.vitalo.markrun.ui.theme.GradientGreenStart
@@ -26,6 +29,21 @@ fun SplashScreen(
 ) {
     val progress by viewModel.progress.collectAsState()
     val shouldNavigate by viewModel.shouldNavigate.collectAsState()
+    val shouldShowAd by viewModel.shouldShowAd.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(shouldShowAd) {
+        shouldShowAd?.let { virtualId ->
+            val activity = context as? Activity
+            if (activity != null) {
+                AdManager.showAd(activity, virtualId) {
+                    viewModel.onAdCompleted()
+                }
+            } else {
+                viewModel.onAdCompleted()
+            }
+        }
+    }
 
     LaunchedEffect(shouldNavigate) {
         when (shouldNavigate) {
